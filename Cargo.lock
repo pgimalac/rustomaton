@@ -1,0 +1,4 @@
+[[package]]
+name = "rust-automaton"
+version = "0.1.0"
+
