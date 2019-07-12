@@ -1,4 +1,7 @@
 pub mod fnda {
+    use crate::automaton::automaton::Automaton;
+    use crate::automaton::fda::fda::FDA;
+    use std::cmp::PartialEq;
     use std::collections::{HashMap, HashSet};
     use std::fmt::Display;
     use std::hash::Hash;
@@ -27,9 +30,7 @@ pub mod fnda {
     fn shift_transitions<V: Eq + Hash>(a: &mut Vec<HashMap<V, Vec<usize>>>, l: usize) {
         for map in a {
             for (_, v) in map {
-                for u in v.iter_mut() {
-                    *u += l;
-                }
+                v.iter_mut().for_each(|t| *t += l);
             }
         }
     }
@@ -42,18 +43,18 @@ pub mod fnda {
         a.append(&mut b);
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct FNDA<V: Eq + Hash + Display + Copy + Clone> {
-        alphabet: HashSet<V>,
-        initials: HashSet<usize>,
-        finals: HashSet<usize>,
-        transitions: Vec<HashMap<V, Vec<usize>>>,
+        pub(crate) alphabet: HashSet<V>,
+        pub(crate) initials: HashSet<usize>,
+        pub(crate) finals: HashSet<usize>,
+        pub(crate) transitions: Vec<HashMap<V, Vec<usize>>>,
     }
 
     /* IMPLEMENTATION OF FNDA */
 
     impl<V: Eq + Hash + Display + Copy + Clone> FNDA<V> {
-        pub fn intersect(mut self, mut b: FNDA<V>) -> FNDA<V> {
+        pub fn intersect(self, mut _b: FNDA<V>) -> FNDA<V> {
             unimplemented!()
         }
 
@@ -143,17 +144,62 @@ pub mod fnda {
             }
         }
 
-        pub fn accessible(&mut self) {
-            unimplemented!()
+        pub fn make_reachable(&mut self) {
+            let mut acc: HashSet<usize> = self.initials.clone().into_iter().collect();
+            let mut stack: Vec<usize> = self.initials.iter().cloned().collect();
+            loop {
+                if let Some(e) = stack.pop() {
+                    for (_, v) in &self.transitions[e] {
+                        for t in v {
+                            if !acc.contains(t) {
+                                acc.insert(*t);
+                                stack.push(*t);
+                            }
+                        }
+                    }
+                } else {
+                    break;
+                }
+            }
+
+            let mut map = HashMap::new();
+            let mut ind = 0;
+            let l = self.transitions.len();
+            for i in 0..l {
+                if acc.contains(&i) {
+                    map.insert(i, ind);
+                    self.transitions.swap(i, ind);
+                    ind += 1;
+                }
+            }
+            self.transitions.truncate(ind);
+
+            self.finals = self
+                .finals
+                .iter()
+                .filter(|x| acc.contains(&x))
+                .map(|x| *map.get(x).unwrap())
+                .collect();
+            // no need to filter the initials since they must be reachable
+            self.initials = self.initials.iter().map(|x| *map.get(x).unwrap()).collect();
+            for m in &mut self.transitions {
+                for v in m.values_mut() {
+                    for t in v {
+                        *t = *map.get(t).unwrap();
+                    }
+                }
+            }
         }
 
-        pub fn coaccessible(&mut self) {
-            unimplemented!()
+        pub fn make_coreachable(&mut self) {
+            self.reverse();
+            self.make_reachable();
+            self.reverse();
         }
 
         pub fn trim(&mut self) {
-            self.accessible();
-            self.coaccessible();
+            self.make_reachable();
+            self.make_coreachable();
         }
 
         pub fn reverse(&mut self) {
@@ -173,26 +219,9 @@ pub mod fnda {
             std::mem::swap(&mut self.initials, &mut self.finals);
         }
 
-        pub fn copy(&self) -> FNDA<V> {
-            let alphabet = self.alphabet.clone();
-            let initials = self.initials.clone();
-            let finals = self.finals.clone();
-            let transitions = self.transitions.clone();
-            FNDA {
-                alphabet,
-                initials,
-                finals,
-                transitions,
-            }
-        }
-
-        pub fn equals(&self, b: &FNDA<V>) -> bool {
-            self.contains(&b) && b.contains(self)
-        }
-
         pub fn contains(&self, b: &FNDA<V>) -> bool {
-            let mut cpy_a = self.copy();
-            let mut cpy_b = b.copy();
+            let mut cpy_a = self.clone();
+            let cpy_b = b.clone();
             cpy_a.negate();
             cpy_a.intersect(cpy_b).is_empty()
         }
@@ -211,7 +240,7 @@ pub mod fnda {
             return true;
         }
 
-        pub fn is_accessible(&self) -> bool {
+        pub fn is_reachable(&self) -> bool {
             let mut acc: HashSet<usize> = self.initials.clone().into_iter().collect();
             let mut stack: Vec<usize> = self.initials.iter().cloned().collect();
             loop {
@@ -231,14 +260,14 @@ pub mod fnda {
             acc.len() == self.transitions.len()
         }
 
-        pub fn is_coaccessible(&self) -> bool {
-            let mut rev = self.copy();
+        pub fn is_coreachable(&self) -> bool {
+            let mut rev = self.clone();
             rev.reverse();
-            rev.is_accessible()
+            rev.is_reachable()
         }
 
         pub fn is_trimmed(&self) -> bool {
-            self.is_accessible() && self.is_coaccessible()
+            self.is_reachable() && self.is_coreachable()
         }
 
         pub fn is_empty(&self) -> bool {
@@ -270,9 +299,30 @@ pub mod fnda {
         }
 
         pub fn is_full(&self) -> bool {
-            let mut cpy = self.copy();
+            let mut cpy = self.clone();
             cpy.negate();
             cpy.is_empty()
+        }
+    }
+
+    impl<V: Eq + Hash + Display + Copy + Clone> PartialEq<FNDA<V>> for FNDA<V> {
+        fn eq(&self, b: &FNDA<V>) -> bool {
+            self.contains(&b) && b.contains(self)
+        }
+    }
+
+    impl<V: Eq + Hash + Display + Copy + Clone> PartialEq<FDA<V>> for FNDA<V> {
+        fn eq(&self, b: &FDA<V>) -> bool {
+            self.eq(&b.to_fnda())
+        }
+    }
+
+    impl<V: Eq + Hash + Display + Copy + Clone> PartialEq<Automaton<V>> for FNDA<V> {
+        fn eq(&self, b: &Automaton<V>) -> bool {
+            match b {
+                Automaton::FDA(v) => self.eq(&**v),
+                Automaton::FNDA(v) => self.eq(&**v),
+            }
         }
     }
 }

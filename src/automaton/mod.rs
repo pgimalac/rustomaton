@@ -2,7 +2,7 @@ pub mod fda;
 pub mod fnda;
 
 pub mod automaton {
-    use crate::automaton::fda::FDA;
+    use crate::automaton::fda::fda::FDA;
     use crate::automaton::fnda::fnda::FNDA;
     use std::fmt::Display;
     use std::hash::Hash;

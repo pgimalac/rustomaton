@@ -6,16 +6,19 @@ A Rust automaton project
 - [ ] export an automaton to a dot file
 - [ ] export an automaton to a regexp
 
-- [ ] union of two automatons
+- [x] union of two automatons
 - [ ] intersection of two automatons
-- [ ] equality of two automatons
-- [ ] concatenation of two automatons
-- [ ] complementary of an automaton
+- [x] equality of two automatons
+- [x] concatenation of two automatons
+- [x] complementary of an automaton
 - [ ] minimisation of an automaton
 - [ ] Kleene closure of an automaton
 - [ ] determinisation of an automaton
-- [ ] completed automaton
-- [ ] accessible automaton
-- [ ] co-accessible automaton
-- [ ] trimmed automaton
-- [ ] reversed automaton
+- [x] completed automaton
+- [x] accessible automaton
+- [x] co-accessible automaton
+- [x] trimmed automaton
+- [x] reversed automaton
+
+- [ ] all functions above but for fda
+- [ ] improve algorithms (for example coreachable, maybe eq)
