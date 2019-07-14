@@ -13,7 +13,7 @@ A Rust automaton project
 - [x] complementary of an automaton
 - [ ] minimisation of an automaton
 - [ ] Kleene closure of an automaton
-- [x] determinisation of an automaton
+- [x] determinization of an automaton
 - [x] completed automaton
 - [x] accessible automaton
 - [x] co-accessible automaton
