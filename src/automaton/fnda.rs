@@ -2,10 +2,11 @@ pub mod fnda {
     use crate::automaton::automaton::Automaton;
     use crate::automaton::fda::fda::FDA;
     use std::cmp::PartialEq;
-    use std::collections::{HashMap, HashSet};
+    use std::collections::{HashMap, HashSet, VecDeque};
     use std::fmt::Display;
     use std::hash::Hash;
     use std::iter::repeat;
+    use std::iter::FromIterator;
 
     /* AUXILIARY FUNCTIONS */
 
@@ -117,10 +118,6 @@ pub mod fnda {
                 }
             }
             self.finals = finals;
-        }
-
-        pub fn minimise(&mut self) {
-            unimplemented!()
         }
 
         pub fn kleene(&mut self) {
@@ -271,7 +268,7 @@ pub mod fnda {
         }
 
         pub fn is_empty(&self) -> bool {
-            if self.initials.is_disjoint(&self.finals) {
+            if !self.initials.is_disjoint(&self.finals) {
                 return false;
             }
 
@@ -302,6 +299,81 @@ pub mod fnda {
             let mut cpy = self.clone();
             cpy.negate();
             cpy.is_empty()
+        }
+
+        pub fn to_fda(&self) -> FDA<V> {
+            if self.is_empty() {
+                FDA {
+                    alphabet: self.alphabet.clone(),
+                    initial: None,
+                    finals: HashSet::new(),
+                    transitions: Vec::new(),
+                }
+            } else if self.transitions.len() < 128 {
+                self.small_to_fda()
+            } else {
+                self.big_to_fda()
+            }
+        }
+
+        fn small_to_fda(&self) -> FDA<V> {
+            let mut map = HashMap::new();
+            let mut stack = VecDeque::new();
+
+            let mut fda = FDA {
+                alphabet: self.alphabet.clone(),
+                initial: Some(0),
+                finals: HashSet::new(),
+                transitions: Vec::new(),
+            };
+
+            let mut i: u128 = 0;
+            for initial in &self.initials {
+                i |= 1 << *initial;
+                if self.finals.contains(initial) {
+                    fda.finals.insert(0);
+                }
+            }
+
+            map.insert(i, 0);
+            stack.push_back((i, HashSet::from_iter(self.initials.clone().into_iter())));
+
+            loop {
+                if let Some((elem, iter)) = stack.pop_front() {
+                    let elem_num = *map.get(&elem).unwrap();
+                    for v in &self.alphabet {
+                        let mut it = HashSet::new();
+                        for state in &iter {
+                            if let Some(transitions) = self.transitions[*state].get(&v) {
+                                for t in transitions {
+                                    it.insert(*t);
+                                }
+                            }
+                        }
+                        if it.is_empty() {
+                            continue;
+                        }
+
+                        let other = it.iter().fold(0, |acc, x| acc | 1 << *x);
+                        if !map.contains_key(&other) {
+                            map.insert(other, map.len());
+                            if it.iter().any(|x| self.finals.contains(x)) {
+                                fda.finals.insert(map.len() - 1);
+                            }
+                            stack.push_back((other, it));
+                        }
+                        fda.transitions[elem_num].insert(*v, *map.get(&other).unwrap());
+                    }
+                } else {
+                    break;
+                }
+            }
+
+            fda
+        }
+
+        fn big_to_fda(&self) -> FDA<V> {
+            unimplemented!()
         }
     }
 

@@ -7,7 +7,8 @@ pub mod fda {
     #[derive(Debug)]
     pub struct FDA<V: Eq + Hash + Display + Copy + Clone> {
         pub(crate) alphabet: HashSet<V>,
-        pub(crate) initial: usize,
+        pub(crate) initial: Option<usize>,
+        // in case the automaton is empty
         pub(crate) finals: HashSet<usize>,
         pub(crate) transitions: Vec<HashMap<V, usize>>,
     }
@@ -15,7 +16,9 @@ pub mod fda {
     impl<V: Eq + Hash + Display + Copy + Clone> FDA<V> {
         pub fn to_fnda(&self) -> FNDA<V> {
             let mut initials = HashSet::new();
-            initials.insert(self.initial);
+            if let Some(e) = self.initial {
+                initials.insert(e);
+            }
             let transitions = Vec::new();
             FNDA {
                 alphabet: self.alphabet.clone(),
@@ -42,7 +45,7 @@ pub mod fda {
         }
 
         pub fn minimise(&self) {
-            self.to_fnda().minimise();
+            unimplemented!()
         }
 
         pub fn kleene(&self) {
