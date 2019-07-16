@@ -1,16 +1,16 @@
-pub mod fda;
-pub mod fnda;
+pub mod dfa;
+pub mod nfa;
 
 pub mod automaton {
-    use crate::automaton::fda::fda::FDA;
-    use crate::automaton::fnda::fnda::FNDA;
+    use crate::automaton::dfa::dfa::DFA;
+    use crate::automaton::nfa::nfa::NFA;
     use std::fmt::Display;
     use std::hash::Hash;
 
     #[derive(Debug)]
     pub enum Automaton<V: Eq + Hash + Display + Copy + Clone> {
-        FDA(Box<FDA<V>>),
-        FNDA(Box<FNDA<V>>),
+        DFA(Box<DFA<V>>),
+        NFA(Box<NFA<V>>),
     }
 
     // fn intersect(self, b: Automaton<V>) -> Automaton<V>;
