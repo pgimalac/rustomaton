@@ -4,17 +4,18 @@ pub mod nfa;
 pub mod automaton {
     use crate::automaton::dfa::dfa::DFA;
     use crate::automaton::nfa::nfa::NFA;
+    use std::fmt::Debug;
     use std::fmt::Display;
     use std::hash::Hash;
 
     #[derive(Debug)]
-    pub enum Automaton<V: Eq + Hash + Display + Copy + Clone> {
+    pub enum Automaton<V: Eq + Hash + Display + Copy + Clone + Debug> {
         DFA(Box<DFA<V>>),
         NFA(Box<NFA<V>>),
     }
 
     // fn intersect(self, b: Automaton<V>) -> Automaton<V>;
-    // fn union(self, b: Automaton<V>) -> Automaton<V>;
+    // fn unite(self, b: Automaton<V>) -> Automaton<V>;
     // fn concatenate(self, b: Automaton<V>) -> Automaton<V>;
 
     // fn negate(self) -> Automaton<V>;

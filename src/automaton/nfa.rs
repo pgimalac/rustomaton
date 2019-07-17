@@ -3,6 +3,7 @@ pub mod nfa {
     use crate::automaton::dfa::dfa::DFA;
     use std::cmp::PartialEq;
     use std::collections::{HashMap, HashSet, VecDeque};
+    use std::fmt::Debug;
     use std::fmt::Display;
     use std::hash::Hash;
     use std::iter::repeat;
@@ -28,7 +29,7 @@ pub mod nfa {
         }
     }
 
-    fn shift_fnda<V: Eq + Hash + Display + Copy + Clone>(a: &mut NFA<V>, l: usize) {
+    fn shift_fnda<V: Eq + Hash + Display + Copy + Clone + Debug>(a: &mut NFA<V>, l: usize) {
         shift_hashset(&mut a.initials, l);
         shift_hashset(&mut a.finals, l);
         shift_transitions(&mut a.transitions, l);
@@ -51,7 +52,7 @@ pub mod nfa {
     }
 
     #[derive(Debug, Clone)]
-    pub struct NFA<V: Eq + Hash + Display + Copy + Clone> {
+    pub struct NFA<V: Eq + Hash + Display + Copy + Clone + Debug> {
         pub(crate) alphabet: HashSet<V>,
         pub(crate) initials: HashSet<usize>,
         pub(crate) finals: HashSet<usize>,
@@ -60,12 +61,12 @@ pub mod nfa {
 
     /* IMPLEMENTATION OF NFA */
 
-    impl<V: Eq + Hash + Display + Copy + Clone> NFA<V> {
-        pub fn intersect(self, mut _b: NFA<V>) -> NFA<V> {
-            unimplemented!()
+    impl<V: Eq + Hash + Display + Copy + Clone + Debug> NFA<V> {
+        pub fn intersect(mut self, mut b: NFA<V>) -> DFA<V> {
+            self.negate().unite(b.negate()).negate()
         }
 
-        pub fn union(mut self, b: NFA<V>) -> NFA<V> {
+        pub fn unite(mut self, b: NFA<V>) -> NFA<V> {
             let NFA {
                 alphabet,
                 initials,
@@ -117,7 +118,9 @@ pub mod nfa {
 
         pub fn negate(&mut self) -> DFA<V> {
             let mut aut = self.to_dfa();
+            //aut.write_dot(5).unwrap();
             aut.negate();
+            //aut.write_dot(6).unwrap();
             return aut;
         }
 
@@ -222,10 +225,8 @@ pub mod nfa {
         }
 
         pub fn contains(&self, b: &NFA<V>) -> bool {
-            let mut cpy_a = self.clone();
-            let cpy_b = b.clone();
-            cpy_a.negate();
-            cpy_a.intersect(cpy_b).is_empty()
+            let aut1 = self.clone().negate();
+            aut1.intersect(b.to_dfa()).is_empty()
         }
 
         pub fn is_complete(&self) -> bool {
@@ -359,7 +360,7 @@ pub mod nfa {
             };
 
             let i: u128 = self.initials.iter().fold(0, |acc, x| acc | (1 << *x));
-            if self.finals.iter().any(|x| self.finals.contains(x)) {
+            if self.initials.iter().any(|x| self.finals.contains(x)) {
                 dfa.finals.insert(0);
             }
 
@@ -384,9 +385,10 @@ pub mod nfa {
 
                         let other = it.iter().fold(0, |acc, x| acc | 1 << *x);
                         if !map.contains_key(&other) {
-                            map.insert(other, map.len());
+                            let l = dfa.transitions.len();
+                            map.insert(other, l);
                             if it.iter().any(|x| self.finals.contains(x)) {
-                                dfa.finals.insert(map.len() - 1);
+                                dfa.finals.insert(l);
                             }
                             stack.push_back((other, it));
                             dfa.transitions.push(HashMap::new());
@@ -502,19 +504,19 @@ pub mod nfa {
         }
     }
 
-    impl<V: Eq + Hash + Display + Copy + Clone> PartialEq<NFA<V>> for NFA<V> {
+    impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<NFA<V>> for NFA<V> {
         fn eq(&self, b: &NFA<V>) -> bool {
             self.contains(&b) && b.contains(self)
         }
     }
 
-    impl<V: Eq + Hash + Display + Copy + Clone> PartialEq<DFA<V>> for NFA<V> {
+    impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<DFA<V>> for NFA<V> {
         fn eq(&self, b: &DFA<V>) -> bool {
             self.eq(&b.to_nfa())
         }
     }
 
-    impl<V: Eq + Hash + Display + Copy + Clone> PartialEq<Automaton<V>> for NFA<V> {
+    impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<Automaton<V>> for NFA<V> {
         fn eq(&self, b: &Automaton<V>) -> bool {
             match b {
                 Automaton::DFA(v) => self.eq(&**v),

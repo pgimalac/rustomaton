@@ -1,11 +1,11 @@
 pub mod dfa {
     use crate::automaton::nfa::nfa::NFA;
     use std::collections::{HashMap, HashSet};
-    use std::fmt::Display;
+    use std::fmt::{Debug, Display};
     use std::hash::Hash;
 
     #[derive(Debug)]
-    pub struct DFA<V: Eq + Hash + Display + Copy + Clone> {
+    pub struct DFA<V: Eq + Hash + Display + Copy + Clone + Debug> {
         pub(crate) alphabet: HashSet<V>,
         pub(crate) initial: usize,
         // in case the automaton is empty
@@ -13,11 +13,14 @@ pub mod dfa {
         pub(crate) transitions: Vec<HashMap<V, usize>>,
     }
 
-    impl<V: Eq + Hash + Display + Copy + Clone> DFA<V> {
+    impl<V: Eq + Hash + Display + Copy + Clone + Debug> DFA<V> {
         pub fn to_nfa(&self) -> NFA<V> {
             let mut initials = HashSet::new();
             initials.insert(self.initial);
-            let transitions = Vec::new();
+            let mut transitions = Vec::new();
+            for map in &self.transitions {
+                transitions.push(map.iter().map(|(k, v)| (*k, vec![*v])).collect());
+            }
             NFA {
                 alphabet: self.alphabet.clone(),
                 initials,
@@ -26,12 +29,15 @@ pub mod dfa {
             }
         }
 
-        pub fn intersect(self, b: DFA<V>) -> NFA<V> {
-            self.to_nfa().intersect(b.to_nfa())
+        pub fn intersect(mut self, mut b: DFA<V>) -> DFA<V> {
+            self.negate();
+            b.negate();
+            let mut aut = self.unite(b);
+            aut.negate()
         }
 
-        pub fn union(self, b: DFA<V>) -> NFA<V> {
-            self.to_nfa().union(b.to_nfa())
+        pub fn unite(self, b: DFA<V>) -> NFA<V> {
+            self.to_nfa().unite(b.to_nfa())
         }
 
         pub fn concatenate(self, b: DFA<V>) -> NFA<V> {
@@ -58,7 +64,6 @@ pub mod dfa {
 
         pub fn complete(&mut self) {
             if self.is_complete() {
-                println!("was complete");
                 return;
             }
 

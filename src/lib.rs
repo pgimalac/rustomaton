@@ -204,14 +204,14 @@ mod tests {
     }
 
     #[test]
-    fn test_union() {
+    fn test_unite() {
         let list = automaton_list();
         for (i, (aut1, acc1, _)) in list.iter().enumerate() {
             for (j, (aut2, acc2, _)) in list.iter().enumerate() {
-                let aut = aut1.clone().union(aut2.clone());
+                let aut = aut1.clone().unite(aut2.clone());
                 if let Some(e) = acc1.iter().chain(acc2.iter()).find(|x| !aut.run(x)) {
                     aut.write_dot(9).unwrap();
-                    panic!("union of {} and {}: elem {:?}", i, j, e);
+                    panic!("unite of {} and {}: elem {:?}", i, j, e);
                 }
             }
         }
@@ -256,4 +256,77 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_intersect() {
+        let list = automaton_list();
+        for (i, (aut1, _, rej1)) in list.iter().enumerate() {
+            for (j, (aut2, _, rej2)) in list.iter().enumerate() {
+                let aut = aut1.clone().intersect(aut2.clone());
+                if let Some(e) = rej1.iter().chain(rej2.iter()).find(|x| aut.run(x)) {
+                    aut.write_dot(9).unwrap();
+                    panic!("intersection of {} and {}: elem {:?}", i, j, e);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_equals() {
+        for (i, (aut, _, _)) in automaton_list().into_iter().enumerate() {
+            if !aut.eq(&aut) {
+                panic!("{} is supposed to be equal to itself", i);
+            }
+
+            let mut aut2 = aut.clone();
+            aut2.complete();
+            if !aut2.eq(&aut) {
+                panic!("{} is supposed to be equal to itself completed", i);
+            }
+
+            let mut aut2 = aut.clone();
+            aut2.reverse();
+            aut2.reverse();
+            if !aut2.eq(&aut) {
+                panic!("{} is supposed to be equal to itself reversed twice", i);
+            }
+
+            let mut aut2 = aut.clone();
+            aut2.trim();
+            if !aut2.eq(&aut) {
+                panic!("{} is supposed to be equal to itself trimmed", i);
+            }
+
+            let mut aut2 = aut.clone().negate();
+            aut2.negate();
+            if !aut.eq(&aut2) {
+                panic!("{} is supposed to be equal to itself negated twice", i);
+            }
+
+            if !aut.eq(&aut.clone().unite(aut.clone())) {
+                panic!("{} is supposed to be equal to itself united with itself", i);
+            }
+
+            if !aut.eq(&aut.clone().intersect(aut.clone())) {
+                panic!(
+                    "{} is supposed to be equal to itself intersected with itself",
+                    i
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_to_dfa() {
+        for (i, (aut, acc, rej)) in automaton_list().into_iter().enumerate() {
+            let aut = aut.to_dfa();
+            if let Some(e) = acc.iter().find(|x| !aut.run(x)) {
+                aut.write_dot(8).unwrap();
+                panic!("{} is supposed to accept {:?}", i, e);
+            }
+            if let Some(e) = rej.iter().find(|x| aut.run(x)) {
+                aut.write_dot(8).unwrap();
+                panic!("{} isn't supposed to accept {:?}", i, e);
+            }
+        }
+    }
 }
