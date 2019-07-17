@@ -125,7 +125,40 @@ pub mod nfa {
         }
 
         pub fn kleene(&mut self) {
-            unimplemented!()
+            let l = self.transitions.len();
+            let mut map = HashMap::new();
+
+            for i in &self.initials {
+                for (k, v) in &self.transitions[*i] {
+                    let set = &mut map.entry(*k).or_insert(HashSet::new());
+                    for x in v {
+                        set.insert(*x);
+                    }
+                }
+            }
+
+            for i in &self.finals {
+                for (k, v) in &map {
+                    let mut set: HashSet<usize> = self.transitions[*i]
+                        .entry(*k)
+                        .or_insert(Vec::new())
+                        .drain(..)
+                        .collect();
+                    for x in v {
+                        set.insert(*x);
+                    }
+                    self.transitions[*i].insert(*k, set.into_iter().collect());
+                }
+            }
+
+            self.transitions.push(
+                map.into_iter()
+                    .map(|(k, v)| (k, v.into_iter().collect()))
+                    .collect(),
+            );
+            self.initials.clear();
+            self.initials.insert(l);
+            self.finals.insert(l);
         }
 
         pub fn complete(&mut self) {
@@ -185,7 +218,7 @@ pub mod nfa {
                 .filter(|x| acc.contains(&x))
                 .map(|x| *map.get(x).unwrap())
                 .collect();
-            // no need to filter the initials since they must be reachable
+            // no need to filter the initials since they are reachable
             self.initials = self.initials.iter().map(|x| *map.get(x).unwrap()).collect();
             for m in &mut self.transitions {
                 for v in m.values_mut() {

@@ -329,4 +329,53 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_kleene() {
+        for (i, (aut, acc, _)) in automaton_list().into_iter().enumerate() {
+            let mut aut1 = aut.clone();
+            aut1.kleene();
+
+            if !aut1.run(&Vec::new()) {
+                aut1.write_dot(9).unwrap();
+                panic!("{} kleened should accept []", i);
+            }
+            for a1 in &acc {
+                for a2 in &acc {
+                    let mut e = a1.clone();
+                    e.append(&mut a2.clone());
+                    if !aut1.run(&e) {
+                        aut1.write_dot(9).unwrap();
+                        panic!(
+                            "{} kleened should accept the concatenation of {:?} and {:?}",
+                            i, a1, a2
+                        );
+                    }
+                }
+            }
+
+            if !aut1.contains(&aut) {
+                aut1.write_dot(9).unwrap();
+                panic!("{} kleened should contain itself", i);
+            }
+        }
+    }
+
+    #[test]
+    fn test_minimize() {
+        for (i, (aut, acc, rej)) in automaton_list().into_iter().enumerate() {
+            let aut1 = aut.to_dfa().minimize();
+
+            if let Some(e) = acc.iter().find(|x| !aut1.run(x)) {
+                panic!("{} minimized should accept {:?}", i, e);
+            }
+            if let Some(e) = rej.iter().find(|x| aut1.run(x)) {
+                panic!("{} minimized should accept {:?}", i, e);
+            }
+
+            if !aut.eq(&aut1) {
+                panic!("{} should be equal to itself minimized", i);
+            }
+        }
+    }
 }

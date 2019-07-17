@@ -52,8 +52,9 @@ pub mod dfa {
                 .collect();
         }
 
-        pub fn minimise(&self) {
-            unimplemented!()
+        // Brzozowski
+        pub fn minimize(&self) -> DFA<V> {
+            self.reverse().to_dfa().reverse().to_dfa()
         }
 
         pub fn kleene(&self) -> NFA<V> {
