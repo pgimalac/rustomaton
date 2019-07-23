@@ -1,8 +1,14 @@
 pub mod automaton;
+pub mod dfa;
+pub mod nfa;
+pub mod regex;
+mod utils;
 
 #[cfg(test)]
 mod tests {
-    use crate::automaton::nfa::nfa::NFA;
+    use crate::automaton::{Automata, Runnable};
+    use crate::dfa::ToDfa;
+    use crate::nfa::NFA;
     use std::collections::{HashMap, HashSet};
     use std::iter::repeat;
 
@@ -277,28 +283,19 @@ mod tests {
                 panic!("{} is supposed to be equal to itself", i);
             }
 
-            let mut aut2 = aut.clone();
-            aut2.complete();
-            if !aut2.eq(&aut) {
+            if !aut.clone().complete().eq(&aut) {
                 panic!("{} is supposed to be equal to itself completed", i);
             }
 
-            let mut aut2 = aut.clone();
-            aut2.reverse();
-            aut2.reverse();
-            if !aut2.eq(&aut) {
+            if !aut.clone().reverse().reverse().eq(&aut) {
                 panic!("{} is supposed to be equal to itself reversed twice", i);
             }
 
-            let mut aut2 = aut.clone();
-            aut2.trim();
-            if !aut2.eq(&aut) {
+            if !aut.clone().trim().eq(&aut) {
                 panic!("{} is supposed to be equal to itself trimmed", i);
             }
 
-            let mut aut2 = aut.clone().negate();
-            aut2.negate();
-            if !aut.eq(&aut2) {
+            if !aut.eq(&aut.clone().negate().negate()) {
                 panic!("{} is supposed to be equal to itself negated twice", i);
             }
 
@@ -333,8 +330,7 @@ mod tests {
     #[test]
     fn test_kleene() {
         for (i, (aut, acc, _)) in automaton_list().into_iter().enumerate() {
-            let mut aut1 = aut.clone();
-            aut1.kleene();
+            let aut1 = aut.clone().kleene();
 
             if !aut1.run(&Vec::new()) {
                 aut1.write_dot(9).unwrap();
