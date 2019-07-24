@@ -1,6 +1,7 @@
-use crate::automaton::{Automata, Runnable};
+use crate::automaton::{Automata, Automaton, Runnable};
 use crate::nfa::{ToNfa, NFA};
 use crate::regex::{Regex, ToRegex};
+use std::cmp::{Ordering, Ordering::*, PartialEq, PartialOrd};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
@@ -11,7 +12,6 @@ use std::str::FromStr;
 pub struct DFA<V: Eq + Hash + Display + Copy + Clone + Debug> {
     pub(crate) alphabet: HashSet<V>,
     pub(crate) initial: usize,
-    // in case the automaton is empty
     pub(crate) finals: HashSet<usize>,
     pub(crate) transitions: Vec<HashMap<V, usize>>,
 }
@@ -25,96 +25,13 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> DFA<V> {
         self.negate().unite(b.negate()).negate()
     }
 
-    pub fn negate(mut self) -> DFA<V> {
-        self.complete();
-        self.finals = (0..self.transitions.len())
-            .into_iter()
-            .filter(|x| !self.finals.contains(&x))
-            .collect();
-        self
-    }
-
     // Brzozowski
-    pub fn minimize(&self) -> DFA<V> {
+    pub fn minimize(self) -> DFA<V> {
         self.reverse().to_dfa().reverse().to_dfa()
-    }
-
-    pub fn complete(&mut self) {
-        if self.is_complete() {
-            return;
-        }
-
-        let l = self.transitions.len();
-        self.transitions.push(HashMap::new());
-        for map in &mut self.transitions {
-            for v in &self.alphabet {
-                if !map.contains_key(&v) {
-                    map.insert(*v, l);
-                }
-            }
-        }
-    }
-
-    pub fn make_reachable(&self) -> NFA<V> {
-        self.to_nfa().make_reachable()
-    }
-
-    pub fn make_coreachable(&self) -> NFA<V> {
-        self.to_nfa().make_coreachable()
-    }
-
-    pub fn trim(&self) -> NFA<V> {
-        self.to_nfa().trim()
-    }
-
-    pub fn reverse(&self) -> NFA<V> {
-        self.to_nfa().reverse()
     }
 
     pub fn contains(&self, b: &DFA<V>) -> bool {
         self.to_nfa().contains(&b.to_nfa())
-    }
-
-    pub fn is_complete(&self) -> bool {
-        for map in &self.transitions {
-            for v in &self.alphabet {
-                if !map.contains_key(&v) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    pub fn is_reachable(&self) -> bool {
-        let mut stack = vec![self.initial];
-        let mut acc = HashSet::new();
-        acc.insert(self.initial);
-        while let Some(e) = stack.pop() {
-            for (_, v) in &self.transitions[e] {
-                if !acc.contains(&v) {
-                    acc.insert(*v);
-                    stack.push(*v);
-                }
-            }
-        }
-        return acc.len() == self.transitions.len();
-    }
-
-    pub fn is_coreachable(&self) -> bool {
-        self.to_nfa().is_coreachable()
-    }
-
-    pub fn is_trimmed(&self) -> bool {
-        self.to_nfa().is_trimmed()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.to_nfa().is_empty()
-    }
-
-    pub fn is_full(&self) -> bool {
-        self.to_nfa().is_full()
     }
 
     pub fn write_dot(&self, n: u8) -> Result<(), std::io::Error> {
@@ -133,6 +50,91 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Runnable<V> for DFA<V> {
             }
         }
         return self.finals.contains(&actual);
+    }
+
+    fn is_complete(&self) -> bool {
+        for map in &self.transitions {
+            for v in &self.alphabet {
+                if !map.contains_key(&v) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    fn is_reachable(&self) -> bool {
+        let mut stack = vec![self.initial];
+        let mut acc = HashSet::new();
+        acc.insert(self.initial);
+        while let Some(e) = stack.pop() {
+            for (_, v) in &self.transitions[e] {
+                if !acc.contains(&v) {
+                    acc.insert(*v);
+                    stack.push(*v);
+                }
+            }
+        }
+        return acc.len() == self.transitions.len();
+    }
+
+    fn is_coreachable(&self) -> bool {
+        self.to_nfa().is_coreachable()
+    }
+
+    fn is_trimmed(&self) -> bool {
+        self.to_nfa().is_trimmed()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.to_nfa().is_empty()
+    }
+
+    fn is_full(&self) -> bool {
+        self.to_nfa().is_full()
+    }
+
+    fn negate(mut self) -> DFA<V> {
+        self = self.complete();
+        self.finals = (0..self.transitions.len())
+            .into_iter()
+            .filter(|x| !self.finals.contains(&x))
+            .collect();
+        self
+    }
+
+    fn complete(mut self) -> DFA<V> {
+        if self.is_complete() {
+            return self;
+        }
+
+        let l = self.transitions.len();
+        self.transitions.push(HashMap::new());
+        for map in &mut self.transitions {
+            for v in &self.alphabet {
+                if !map.contains_key(&v) {
+                    map.insert(*v, l);
+                }
+            }
+        }
+
+        self
+    }
+
+    fn make_reachable(self) -> DFA<V> {
+        self.to_nfa().make_reachable().to_dfa()
+    }
+
+    fn make_coreachable(self) -> DFA<V> {
+        self.to_nfa().make_coreachable().to_dfa()
+    }
+
+    fn trim(self) -> DFA<V> {
+        self.to_nfa().trim().to_dfa()
+    }
+
+    fn reverse(self) -> DFA<V> {
+        self.to_nfa().reverse().to_dfa()
     }
 }
 
@@ -188,6 +190,61 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToNfa<V> for DFA<V> {
             finals: self.finals.clone(),
             transitions,
         }
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<DFA<V>> for DFA<V> {
+    fn eq(&self, b: &DFA<V>) -> bool {
+        self.le(&b) && self.ge(&b)
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<NFA<V>> for DFA<V> {
+    fn eq(&self, b: &NFA<V>) -> bool {
+        self.to_nfa().eq(b)
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<Regex<V>> for DFA<V> {
+    fn eq(&self, b: &Regex<V>) -> bool {
+        self.to_nfa().eq(&b.to_nfa())
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<Automaton<V>> for DFA<V> {
+    fn eq(&self, b: &Automaton<V>) -> bool {
+        match b {
+            Automaton::DFA(v) => self.eq(&**v),
+            Automaton::NFA(v) => self.eq(&**v),
+            Automaton::REG(v) => self.eq(&**v),
+        }
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialOrd for DFA<V> {
+    fn partial_cmp(&self, other: &DFA<V>) -> Option<Ordering> {
+        match (self.ge(&other), self.le(&other)) {
+            (true, true) => Some(Equal),
+            (true, false) => Some(Greater),
+            (false, true) => Some(Less),
+            (false, false) => None,
+        }
+    }
+
+    fn lt(&self, other: &DFA<V>) -> bool {
+        other.contains(&self) && !self.contains(&other)
+    }
+
+    fn le(&self, other: &DFA<V>) -> bool {
+        other.contains(&self)
+    }
+
+    fn gt(&self, other: &DFA<V>) -> bool {
+        self.contains(&other) && !other.contains(&self)
+    }
+
+    fn ge(&self, other: &DFA<V>) -> bool {
+        self.contains(&other)
     }
 }
 

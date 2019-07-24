@@ -243,7 +243,7 @@ mod tests {
 
     #[test]
     fn test_negate() {
-        for (i, (mut aut, acc, rej)) in automaton_list().into_iter().enumerate() {
+        for (i, (aut, acc, rej)) in automaton_list().into_iter().enumerate() {
             let aut = aut.negate();
             if let Some(e) = acc.iter().find(|x| aut.run(x)) {
                 aut.write_dot(9).unwrap();

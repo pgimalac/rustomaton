@@ -2,7 +2,7 @@ use crate::automaton::{Automata, Automaton, Runnable};
 use crate::dfa::{ToDfa, DFA};
 use crate::regex::{Regex, ToRegex};
 use crate::utils::*;
-use std::cmp::PartialEq;
+use std::cmp::{Ordering, Ordering::*, PartialEq, PartialOrd};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
@@ -25,201 +25,12 @@ pub trait ToNfa<V: Eq + Hash + Display + Copy + Clone + Debug> {
 /* IMPLEMENTATION OF NFA */
 
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> NFA<V> {
-    pub fn intersect(mut self, mut b: NFA<V>) -> DFA<V> {
-        self.negate().unite(b.negate()).negate()
-    }
-
-    pub fn negate(&mut self) -> DFA<V> {
-        self.to_dfa().negate()
-    }
-
-    pub fn complete(mut self) -> NFA<V> {
-        if self.is_complete() {
-            return self;
-        }
-
-        let l = self.transitions.len();
-        self.transitions.push(HashMap::new());
-        for m in &mut self.transitions {
-            for v in &self.alphabet {
-                let t = m.entry(*v).or_insert(Vec::new());
-                if t.is_empty() {
-                    t.push(l);
-                }
-            }
-        }
-
-        if self.initials.is_empty() {
-            self.initials.insert(l);
-        }
-
-        self
-    }
-
-    pub fn make_reachable(mut self) -> NFA<V> {
-        let mut acc: HashSet<usize> = self.initials.clone().into_iter().collect();
-        let mut stack: Vec<usize> = self.initials.iter().cloned().collect();
-        while let Some(e) = stack.pop() {
-            for (_, v) in &self.transitions[e] {
-                for t in v {
-                    if !acc.contains(t) {
-                        acc.insert(*t);
-                        stack.push(*t);
-                    }
-                }
-            }
-        }
-
-        let mut map = HashMap::new();
-        let mut ind = 0;
-        let l = self.transitions.len();
-        for i in 0..l {
-            if acc.contains(&i) {
-                map.insert(i, ind);
-                self.transitions.swap(i, ind);
-                ind += 1;
-            }
-        }
-        self.transitions.truncate(ind);
-
-        self.finals = self
-            .finals
-            .iter()
-            .filter(|x| acc.contains(&x))
-            .map(|x| *map.get(x).unwrap())
-            .collect();
-        // no need to filter the initials since they are reachable
-        self.initials = self.initials.iter().map(|x| *map.get(x).unwrap()).collect();
-        for m in &mut self.transitions {
-            for v in m.values_mut() {
-                for t in v {
-                    *t = *map.get(t).unwrap();
-                }
-            }
-        }
-
-        self
-    }
-
-    pub fn make_coreachable(self) -> NFA<V> {
-        self.reverse().make_reachable().reverse()
-    }
-
-    pub fn trim(self) -> NFA<V> {
-        self.make_reachable().make_coreachable()
-    }
-
-    pub fn reverse(mut self) -> NFA<V> {
-        let mut transitions: Vec<_> = repeat(HashMap::new())
-            .take(self.transitions.len())
-            .collect();
-
-        for i in 0..self.transitions.len() {
-            for (k, v) in &self.transitions[i] {
-                for e in v {
-                    transitions[*e].entry(*k).or_insert(Vec::new()).push(i);
-                }
-            }
-        }
-
-        self.transitions = transitions;
-        std::mem::swap(&mut self.initials, &mut self.finals);
-        return self;
+    pub fn intersect(self, b: NFA<V>) -> NFA<V> {
+        self.negate().unite(b.negate()).negate().to_nfa()
     }
 
     pub fn contains(&self, b: &NFA<V>) -> bool {
-        let aut1 = self.clone().negate();
-        aut1.intersect(b.to_dfa()).is_empty()
-    }
-
-    pub fn is_complete(&self) -> bool {
-        if self.initials.is_empty() {
-            return false;
-        }
-
-        for m in &self.transitions {
-            for v in &self.alphabet {
-                if match m.get(v) {
-                    None => true,
-                    Some(v) => v.is_empty(),
-                } {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    pub fn is_reachable(&self) -> bool {
-        let mut acc: HashSet<usize> = self.initials.clone().into_iter().collect();
-        let mut stack: Vec<usize> = self.initials.iter().cloned().collect();
-        while let Some(e) = stack.pop() {
-            for (_, v) in &self.transitions[e] {
-                for t in v {
-                    if !acc.contains(t) {
-                        acc.insert(*t);
-                        stack.push(*t);
-                    }
-                }
-            }
-        }
-        acc.len() == self.transitions.len()
-    }
-
-    pub fn is_coreachable(&self) -> bool {
-        self.clone().reverse().is_reachable()
-    }
-
-    pub fn is_trimmed(&self) -> bool {
-        self.is_reachable() && self.is_coreachable()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        if !self.initials.is_disjoint(&self.finals) {
-            return false;
-        }
-
-        let mut acc: HashSet<usize> = self.initials.clone().into_iter().collect();
-        let mut stack: Vec<usize> = self.initials.clone().into_iter().collect();
-
-        while let Some(e) = stack.pop() {
-            for (_, v) in &self.transitions[e] {
-                for t in v {
-                    if self.finals.contains(t) {
-                        return false;
-                    }
-                    if !acc.contains(t) {
-                        acc.insert(*t);
-                        stack.push(*t);
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
-    pub fn is_full(&self) -> bool {
-        if self.initials.is_disjoint(&self.finals) {
-            return false;
-        }
-
-        let mut acc: HashSet<usize> = self.initials.clone().into_iter().collect();
-        let mut stack: Vec<usize> = self.initials.clone().into_iter().collect();
-
-        while let Some(e) = stack.pop() {
-            for (_, v) in &self.transitions[e] {
-                for t in v {
-                    if !self.finals.contains(t) {
-                        return false;
-                    }
-                    if !acc.contains(t) {
-                        acc.insert(*t);
-                        stack.push(*t);
-                    }
-                }
-            }
-        }
-        return true;
+        self.clone().negate().intersect(b.clone()).is_empty()
     }
 
     fn small_to_dfa(&self) -> DFA<V> {
@@ -453,6 +264,194 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Runnable<V> for NFA<V> {
 
         return actuals.iter().any(|x| self.finals.contains(x));
     }
+
+    fn is_complete(&self) -> bool {
+        if self.initials.is_empty() {
+            return false;
+        }
+
+        for m in &self.transitions {
+            for v in &self.alphabet {
+                if match m.get(v) {
+                    None => true,
+                    Some(v) => v.is_empty(),
+                } {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    fn is_reachable(&self) -> bool {
+        let mut acc: HashSet<usize> = self.initials.clone().into_iter().collect();
+        let mut stack: Vec<usize> = self.initials.iter().cloned().collect();
+        while let Some(e) = stack.pop() {
+            for (_, v) in &self.transitions[e] {
+                for t in v {
+                    if !acc.contains(t) {
+                        acc.insert(*t);
+                        stack.push(*t);
+                    }
+                }
+            }
+        }
+        acc.len() == self.transitions.len()
+    }
+
+    fn is_coreachable(&self) -> bool {
+        self.clone().reverse().is_reachable()
+    }
+
+    fn is_trimmed(&self) -> bool {
+        self.is_reachable() && self.is_coreachable()
+    }
+
+    fn is_empty(&self) -> bool {
+        if !self.initials.is_disjoint(&self.finals) {
+            return false;
+        }
+
+        let mut acc: HashSet<usize> = self.initials.clone().into_iter().collect();
+        let mut stack: Vec<usize> = self.initials.clone().into_iter().collect();
+
+        while let Some(e) = stack.pop() {
+            for (_, v) in &self.transitions[e] {
+                for t in v {
+                    if self.finals.contains(t) {
+                        return false;
+                    }
+                    if !acc.contains(t) {
+                        acc.insert(*t);
+                        stack.push(*t);
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    fn is_full(&self) -> bool {
+        if self.initials.is_disjoint(&self.finals) {
+            return false;
+        }
+
+        let mut acc: HashSet<usize> = self.initials.clone().into_iter().collect();
+        let mut stack: Vec<usize> = self.initials.clone().into_iter().collect();
+
+        while let Some(e) = stack.pop() {
+            for (_, v) in &self.transitions[e] {
+                for t in v {
+                    if !self.finals.contains(t) {
+                        return false;
+                    }
+                    if !acc.contains(t) {
+                        acc.insert(*t);
+                        stack.push(*t);
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    fn negate(self) -> NFA<V> {
+        self.to_dfa().negate().to_nfa()
+    }
+
+    fn complete(mut self) -> NFA<V> {
+        if self.is_complete() {
+            return self;
+        }
+
+        let l = self.transitions.len();
+        self.transitions.push(HashMap::new());
+        for m in &mut self.transitions {
+            for v in &self.alphabet {
+                let t = m.entry(*v).or_insert(Vec::new());
+                if t.is_empty() {
+                    t.push(l);
+                }
+            }
+        }
+
+        if self.initials.is_empty() {
+            self.initials.insert(l);
+        }
+
+        self
+    }
+
+    fn make_reachable(mut self) -> NFA<V> {
+        let mut acc: HashSet<usize> = self.initials.clone().into_iter().collect();
+        let mut stack: Vec<usize> = self.initials.iter().cloned().collect();
+        while let Some(e) = stack.pop() {
+            for (_, v) in &self.transitions[e] {
+                for t in v {
+                    if !acc.contains(t) {
+                        acc.insert(*t);
+                        stack.push(*t);
+                    }
+                }
+            }
+        }
+
+        let mut map = HashMap::new();
+        let mut ind = 0;
+        let l = self.transitions.len();
+        for i in 0..l {
+            if acc.contains(&i) {
+                map.insert(i, ind);
+                self.transitions.swap(i, ind);
+                ind += 1;
+            }
+        }
+        self.transitions.truncate(ind);
+
+        self.finals = self
+            .finals
+            .iter()
+            .filter(|x| acc.contains(&x))
+            .map(|x| *map.get(x).unwrap())
+            .collect();
+        // no need to filter the initials since they are reachable
+        self.initials = self.initials.iter().map(|x| *map.get(x).unwrap()).collect();
+        for m in &mut self.transitions {
+            for v in m.values_mut() {
+                for t in v {
+                    *t = *map.get(t).unwrap();
+                }
+            }
+        }
+
+        self
+    }
+
+    fn make_coreachable(self) -> NFA<V> {
+        self.reverse().make_reachable().reverse()
+    }
+
+    fn trim(self) -> NFA<V> {
+        self.make_reachable().make_coreachable()
+    }
+
+    fn reverse(mut self) -> NFA<V> {
+        let mut transitions: Vec<_> = repeat(HashMap::new())
+            .take(self.transitions.len())
+            .collect();
+
+        for i in 0..self.transitions.len() {
+            for (k, v) in &self.transitions[i] {
+                for e in v {
+                    transitions[*e].entry(*k).or_insert(Vec::new()).push(i);
+                }
+            }
+        }
+
+        self.transitions = transitions;
+        std::mem::swap(&mut self.initials, &mut self.finals);
+        return self;
+    }
 }
 
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> Automata<V, NFA<V>> for NFA<V> {
@@ -599,7 +598,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Automata<V, NFA<V>> for NFA<
 
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<NFA<V>> for NFA<V> {
     fn eq(&self, b: &NFA<V>) -> bool {
-        self.contains(&b) && b.contains(self)
+        self.le(b) && self.ge(b)
     }
 }
 
@@ -622,6 +621,33 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<Automaton<V>> for 
             Automaton::NFA(v) => self.eq(&**v),
             Automaton::REG(v) => self.eq(&**v),
         }
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialOrd for NFA<V> {
+    fn partial_cmp(&self, other: &NFA<V>) -> Option<Ordering> {
+        match (self.ge(&other), self.le(&other)) {
+            (true, true) => Some(Equal),
+            (true, false) => Some(Greater),
+            (false, true) => Some(Less),
+            (false, false) => None,
+        }
+    }
+
+    fn lt(&self, other: &NFA<V>) -> bool {
+        other.contains(&self) && !self.contains(&other)
+    }
+
+    fn le(&self, other: &NFA<V>) -> bool {
+        other.contains(&self)
+    }
+
+    fn gt(&self, other: &NFA<V>) -> bool {
+        self.contains(&other) && !other.contains(&self)
+    }
+
+    fn ge(&self, other: &NFA<V>) -> bool {
+        self.contains(&other)
     }
 }
 

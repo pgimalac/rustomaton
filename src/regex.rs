@@ -1,9 +1,10 @@
-use crate::automaton::Automata;
+use crate::automaton::{Automata, Automaton};
 use crate::utils::append_hashset;
 use crate::{
     dfa::{ToDfa, DFA},
     nfa::{ToNfa, NFA},
 };
+use std::cmp::{Ordering, Ordering::*};
 use std::collections::HashSet;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
@@ -52,6 +53,10 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToRegex<V> for Regex<V> {
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> Regex<V> {
     pub fn simplify(&mut self) {
         self.regex = self.to_dfa().minimize().to_regex().regex
+    }
+
+    pub fn contains(&self, other: &Regex<V>) -> bool {
+        self.to_nfa().contains(&other.to_nfa())
     }
 }
 
@@ -166,6 +171,61 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Automata<V, Regex<V>> for Re
 
         self.regex = Repeat(Box::new(self.regex), start, end);
         self
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<Regex<V>> for Regex<V> {
+    fn eq(&self, b: &Regex<V>) -> bool {
+        self.le(&b) && self.ge(&b)
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<NFA<V>> for Regex<V> {
+    fn eq(&self, b: &NFA<V>) -> bool {
+        self.to_nfa().eq(b)
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<DFA<V>> for Regex<V> {
+    fn eq(&self, b: &DFA<V>) -> bool {
+        self.to_nfa().eq(&b.to_nfa())
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<Automaton<V>> for Regex<V> {
+    fn eq(&self, b: &Automaton<V>) -> bool {
+        match b {
+            Automaton::DFA(v) => self.eq(&**v),
+            Automaton::NFA(v) => self.eq(&**v),
+            Automaton::REG(v) => self.eq(&**v),
+        }
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialOrd for Regex<V> {
+    fn partial_cmp(&self, other: &Regex<V>) -> Option<Ordering> {
+        match (self.ge(&other), self.le(&other)) {
+            (true, true) => Some(Equal),
+            (true, false) => Some(Greater),
+            (false, true) => Some(Less),
+            (false, false) => None,
+        }
+    }
+
+    fn lt(&self, other: &Regex<V>) -> bool {
+        other.contains(&self) && !self.contains(&other)
+    }
+
+    fn le(&self, other: &Regex<V>) -> bool {
+        other.contains(&self)
+    }
+
+    fn gt(&self, other: &Regex<V>) -> bool {
+        self.contains(&other) && !other.contains(&self)
+    }
+
+    fn ge(&self, other: &Regex<V>) -> bool {
+        self.contains(&other)
     }
 }
 
