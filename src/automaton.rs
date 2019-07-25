@@ -35,11 +35,11 @@ pub trait Runnable<V: Eq + Hash + Display + Copy + Clone + Debug, Rhs = Self> {
     fn is_empty(&self) -> bool;
     fn is_full(&self) -> bool;
 
-    fn negate(self) -> Rhs;
     fn complete(self) -> Rhs;
     fn make_reachable(self) -> Rhs;
     fn make_coreachable(self) -> Rhs;
     fn trim(self) -> Rhs;
+    fn negate(self) -> Rhs;
     fn reverse(self) -> Rhs;
 }
 

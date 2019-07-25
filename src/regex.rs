@@ -8,7 +8,7 @@ use std::cmp::{Ordering, Ordering::*};
 use std::collections::HashSet;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
-use std::ops::{Bound::*, RangeBounds};
+use std::ops::{Add, Bound::*, Mul, RangeBounds};
 use Operations::*;
 
 #[derive(Debug, Clone)]
@@ -18,7 +18,6 @@ pub struct Regex<V: Eq + Hash + Display + Copy + Clone + Debug> {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub enum Operations<V: Eq + Hash + Display + Copy + Clone + Debug> {
     Union(Vec<Operations<V>>),
     Concat(Vec<Operations<V>>),
@@ -232,5 +231,21 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialOrd for Regex<V> {
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToString for Regex<V> {
     fn to_string(&self) -> String {
         self.regex.to_string()
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> Add for Regex<V> {
+    type Output = Self;
+
+    fn add(self, other: Regex<V>) -> Regex<V> {
+        self.unite(other)
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> Mul for Regex<V> {
+    type Output = Self;
+
+    fn mul(self, other: Regex<V>) -> Regex<V> {
+        self.concatenate(other)
     }
 }

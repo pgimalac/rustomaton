@@ -5,7 +5,7 @@ use std::cmp::{Ordering, Ordering::*, PartialEq, PartialOrd};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
-use std::ops::RangeBounds;
+use std::ops::{Add, Mul, Neg, Not, RangeBounds, Sub};
 use std::str::FromStr;
 
 #[derive(Debug, Clone)]
@@ -253,5 +253,45 @@ impl FromStr for DFA<char> {
 
     fn from_str(s: &str) -> Result<DFA<char>, Self::Err> {
         NFA::from_str(s).map(|x| x.to_dfa())
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> Mul for DFA<V> {
+    type Output = Self;
+
+    fn mul(self, other: DFA<V>) -> DFA<V> {
+        self.concatenate(other)
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> Neg for DFA<V> {
+    type Output = Self;
+
+    fn neg(self) -> DFA<V> {
+        self.negate()
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> Not for DFA<V> {
+    type Output = Self;
+
+    fn not(self) -> DFA<V> {
+        self.reverse()
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> Sub for DFA<V> {
+    type Output = Self;
+
+    fn sub(self, other: DFA<V>) -> DFA<V> {
+        self.intersect(other.negate())
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> Add for DFA<V> {
+    type Output = Self;
+
+    fn add(self, other: DFA<V>) -> DFA<V> {
+        self.unite(other)
     }
 }

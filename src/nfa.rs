@@ -7,7 +7,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::iter::{repeat, FromIterator};
-use std::ops::{Bound::*, RangeBounds};
+use std::ops::{Add, Bound::*, Mul, Neg, Not, RangeBounds, Sub};
 use std::str::FromStr;
 
 #[derive(Debug, Clone)]
@@ -656,5 +656,45 @@ impl FromStr for NFA<char> {
 
     fn from_str(_s: &str) -> Result<NFA<char>, Self::Err> {
         unimplemented!()
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> Mul for NFA<V> {
+    type Output = Self;
+
+    fn mul(self, other: NFA<V>) -> NFA<V> {
+        self.concatenate(other)
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> Neg for NFA<V> {
+    type Output = Self;
+
+    fn neg(self) -> NFA<V> {
+        self.negate()
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> Not for NFA<V> {
+    type Output = Self;
+
+    fn not(self) -> NFA<V> {
+        self.reverse()
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> Sub for NFA<V> {
+    type Output = Self;
+
+    fn sub(self, other: NFA<V>) -> NFA<V> {
+        self.intersect(other.negate())
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> Add for NFA<V> {
+    type Output = Self;
+
+    fn add(self, other: NFA<V>) -> NFA<V> {
+        self.unite(other)
     }
 }
