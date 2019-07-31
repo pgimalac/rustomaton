@@ -168,12 +168,15 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> NFA<V> {
     }
 
     pub fn new_length(alphabet: HashSet<V>, l: usize) -> NFA<V> {
-        let mut transitions: Vec<_> = repeat(HashMap::new()).take(l + 1).collect();
+        let mut transitions: Vec<_> = repeat(HashMap::new()).take(l).collect();
         for (i, map) in transitions.iter_mut().enumerate() {
             for v in &alphabet {
                 map.insert(*v, vec![i + 1]);
             }
         }
+
+        transitions.push(HashMap::new());
+
         NFA {
             alphabet,
             initials: (0..=0).collect(),
@@ -463,9 +466,11 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Automata<V, NFA<V>> for NFA<
             transitions,
         } = b;
 
+        let l = self.transitions.len();
+
         append_hashset(&mut self.alphabet, alphabet);
-        append_shift_hashset(&mut self.initials, initials, self.transitions.len());
-        append_shift_hashset(&mut self.finals, finals, self.transitions.len());
+        append_shift_hashset(&mut self.initials, initials, l);
+        append_shift_hashset(&mut self.finals, finals, l);
         append_shift_transitions(&mut self.transitions, transitions);
 
         self
@@ -476,7 +481,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Automata<V, NFA<V>> for NFA<
         shift_fnda(&mut b, l);
         let NFA {
             alphabet,
-            mut initials,
+            initials,
             finals,
             mut transitions,
         } = b;
@@ -495,7 +500,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Automata<V, NFA<V>> for NFA<
             }
         }
 
-        if finals.is_disjoint(&mut initials) {
+        if finals.is_disjoint(&initials) {
             self.finals = finals;
         } else {
             append_hashset(&mut self.finals, finals);

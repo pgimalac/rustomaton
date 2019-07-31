@@ -1,160 +1,202 @@
+extern crate logos;
+
 pub mod automaton;
 pub mod dfa;
 pub mod nfa;
 pub mod regex;
+
+mod parser;
 mod utils;
 
 #[cfg(test)]
 mod tests {
     use crate::automaton::{Automata, Runnable};
     use crate::dfa::ToDfa;
-    use crate::nfa::NFA;
+    use crate::nfa::{ToNfa, NFA};
+    use crate::regex::Regex;
     use std::collections::{HashMap, HashSet};
     use std::iter::repeat;
 
     // empty automaton
     // this automaton is deterministic
-    fn automaton0() -> NFA<u8> {
+    fn automaton0() -> NFA<char> {
         NFA {
-            alphabet: (0..10).collect(),
+            alphabet: (b'0'..=b'9').map(char::from).collect(),
             initials: HashSet::new(),
             finals: HashSet::new(),
             transitions: Vec::new(),
         }
     }
-    fn automaton0_accept() -> Vec<Vec<u8>> {
+    fn automaton0_accept() -> Vec<Vec<char>> {
         vec![]
     }
-    fn automaton0_reject() -> Vec<Vec<u8>> {
-        let mut v = vec![vec![], vec![1, 2, 3, 4, 5, 6]];
-        (0..10).for_each(|x| v.push(vec![x]));
+    fn automaton0_reject() -> Vec<Vec<char>> {
+        let mut v = vec![vec![], vec!['1', '2', '3', '4', '5', '6']];
+        (b'0'..=b'9').map(char::from).for_each(|x| v.push(vec![x]));
         return v;
     }
 
     // full automaton (one state, both initial and final, accepting everything)
     // this automaton is deterministic
-    fn automaton1() -> NFA<u8> {
+    fn automaton1() -> NFA<char> {
         let mut map = HashMap::new();
-        for x in 0..10 {
+        for x in (b'0'..=b'9').map(char::from) {
             map.insert(x, vec![0]);
         }
         NFA {
-            alphabet: (0..10).collect(),
+            alphabet: (b'0'..=b'9').map(char::from).collect(),
             initials: (0..=0).collect(),
             finals: (0..=0).collect(),
             transitions: vec![map],
         }
     }
-    fn automaton1_accept() -> Vec<Vec<u8>> {
-        let mut v = vec![vec![], vec![1, 2, 3, 4, 5, 6]];
-        (0..10).for_each(|x| v.push(vec![x]));
+    fn automaton1_accept() -> Vec<Vec<char>> {
+        let mut v = vec![vec![], vec!['1', '2', '3', '4', '5', '6']];
+        (b'0'..=b'9').map(char::from).for_each(|x| v.push(vec![x]));
         return v;
     }
-    fn automaton1_reject() -> Vec<Vec<u8>> {
+    fn automaton1_reject() -> Vec<Vec<char>> {
         vec![]
     }
 
-    fn automaton_mult(a: usize, b: usize) -> NFA<u8> {
-        let mut transitions: Vec<HashMap<u8, Vec<usize>>> =
-            repeat(HashMap::new()).take(a).collect();
+    // automaton accepting all numbers in base b that have c for remainder when divided by a (as well as the empty word if c == 0)
+    // b is at most 10
+    // this automaton is deterministic
+    fn automaton_mult(a: usize, b: usize, c: usize) -> NFA<char> {
+        assert!(b <= 10);
+
+        let mut transitions: Vec<_> = repeat(HashMap::new()).take(a).collect();
         for i in 0..a {
-            for t in 0..b {
-                transitions[i].insert(t as u8, vec![(i * b + t) % a]);
+            for t in 0..b as u8 {
+                transitions[i].insert((t + '0' as u8) as char, vec![(i * b + t as usize) % a]);
             }
         }
 
         NFA {
-            alphabet: (0..10).collect(),
+            alphabet: (b'0'..=b'9').map(char::from).collect(),
             initials: (0..=0).collect(),
-            finals: (0..=0).collect(),
+            finals: (c..=c).collect(),
             transitions,
         }
     }
 
-    // automaton accepting all multiples of a in base b (as well as the empty word)
-    // b is at most 10
-    // this automaton is deterministic
-    fn automaton2() -> NFA<u8> {
-        automaton_mult(3, 2)
+    fn automaton2() -> NFA<char> {
+        automaton_mult(3, 2, 0)
     }
-    fn automaton2_accept() -> Vec<Vec<u8>> {
+    fn automaton2_accept() -> Vec<Vec<char>> {
         vec![
             vec![],
-            vec![0],
-            vec![1, 1],
-            vec![1, 0, 0, 1],
-            vec![1, 1, 0, 0],
+            vec!['0'],
+            vec!['1', '1'],
+            vec!['1', '0', '0', '1'],
+            vec!['1', '1', '0', '0'],
         ]
     }
-    fn automaton2_reject() -> Vec<Vec<u8>> {
-        vec![vec![2], vec![5], vec![1], vec![1, 0], vec![1, 0, 1]]
+    fn automaton2_reject() -> Vec<Vec<char>> {
+        vec![
+            vec!['2'],
+            vec!['5'],
+            vec!['1'],
+            vec!['1', '0'],
+            vec!['1', '0', '1'],
+        ]
     }
 
     // a weird automaton
-    fn automaton3() -> NFA<u8> {
-        let mut transitions: Vec<HashMap<u8, Vec<usize>>> =
+    fn automaton3() -> NFA<char> {
+        let mut transitions: Vec<HashMap<char, Vec<usize>>> =
             repeat(HashMap::new()).take(10).collect();
-        transitions[0].insert(0, vec![6]);
-        transitions[0].insert(2, vec![7]);
-        transitions[2].insert(1, vec![2]);
-        transitions[2].insert(7, vec![6]);
-        transitions[4].insert(8, vec![5]);
-        transitions[4].insert(9, vec![8]);
-        transitions[4].insert(5, vec![7]);
-        transitions[5].insert(3, vec![6]);
-        transitions[5].insert(1, vec![8]);
-        transitions[6].insert(0, vec![0]);
-        transitions[6].insert(2, vec![4]);
-        transitions[6].insert(4, vec![7]);
-        transitions[7].insert(6, vec![4]);
-        transitions[7].insert(9, vec![6, 7]);
-        transitions[7].insert(5, vec![4]);
-        transitions[8].insert(7, vec![5]);
-        transitions[8].insert(4, vec![0]);
-        transitions[8].insert(3, vec![2]);
+        transitions[0].insert('0', vec![6]);
+        transitions[0].insert('2', vec![7]);
+        transitions[2].insert('1', vec![2]);
+        transitions[2].insert('7', vec![6]);
+        transitions[4].insert('8', vec![5]);
+        transitions[4].insert('9', vec![8]);
+        transitions[4].insert('5', vec![7]);
+        transitions[5].insert('3', vec![6]);
+        transitions[5].insert('1', vec![8]);
+        transitions[6].insert('0', vec![0]);
+        transitions[6].insert('2', vec![4]);
+        transitions[6].insert('4', vec![7]);
+        transitions[7].insert('6', vec![4]);
+        transitions[7].insert('9', vec![6, 7]);
+        transitions[7].insert('5', vec![4]);
+        transitions[8].insert('7', vec![5]);
+        transitions[8].insert('4', vec![0]);
+        transitions[8].insert('3', vec![2]);
         NFA {
-            alphabet: (0..10).collect(),
+            alphabet: (b'0'..=b'9').map(char::from).collect(),
             initials: (0..=3).into_iter().collect(),
             finals: vec![2, 3, 4, 5, 9].into_iter().collect(),
             transitions,
         }
     }
-    fn automaton3_accept() -> Vec<Vec<u8>> {
+    fn automaton3_accept() -> Vec<Vec<char>> {
         vec![
             vec![],
-            vec![1, 1, 1],
-            vec![7, 2],
-            vec![2, 6],
-            vec![0, 4, 5],
-            vec![2, 6, 9, 7],
+            vec!['1', '1', '1'],
+            vec!['7', '2'],
+            vec!['2', '6'],
+            vec!['0', '4', '5'],
+            vec!['2', '6', '9', '7'],
         ]
     }
-    fn automaton3_reject() -> Vec<Vec<u8>> {
+    fn automaton3_reject() -> Vec<Vec<char>> {
         vec![
-            vec![7],
-            vec![5],
-            vec![0],
-            vec![0, 2, 9, 4],
-            vec![0, 2, 5, 9],
+            vec!['7'],
+            vec!['5'],
+            vec!['0'],
+            vec!['0', '2', '9', '4'],
+            vec!['0', '2', '5', '9'],
         ]
     }
 
-    fn automaton_list() -> Vec<(NFA<u8>, Vec<Vec<u8>>, Vec<Vec<u8>>)> {
+    fn automaton4() -> NFA<char> {
+        "(018)*4(5+|6|7*)?3+.29?|𝜀"
+            .parse::<Regex<char>>()
+            .unwrap()
+            .to_nfa()
+    }
+
+    fn automaton4_accept() -> Vec<Vec<char>> {
+        vec![
+            vec![],
+            vec!['4', '3', '1', '2'],
+            vec![
+                '0', '1', '8', '0', '1', '8', '0', '1', '8', '4', '5', '5', '5', '3', '3', '3',
+                '3', '2', '9',
+            ],
+            vec!['0', '1', '8', '4', '6', '3', '2', '2'],
+            vec!['4', '7', '7', '7', '7', '3', '3', '4', '2', '9'],
+            vec!['0', '1', '8', '0', '1', '8', '4', '6', '3', '2', '2'],
+        ]
+    }
+
+    fn automaton4_reject() -> Vec<Vec<char>> {
+        vec![
+            vec!['1', '2', '3'],
+            vec!['0', '1', '8', '4', '4'],
+            vec!['4', '5', '5', '3', '3', '2', '9', '1'],
+            vec!['4', '7', '7', '7', '3', '2'],
+        ]
+    }
+
+    fn automaton_list() -> Vec<(NFA<char>, Vec<Vec<char>>, Vec<Vec<char>>)> {
         vec![
             (automaton0(), automaton0_accept(), automaton0_reject()),
             (automaton1(), automaton1_accept(), automaton1_reject()),
             (automaton2(), automaton2_accept(), automaton2_reject()),
             (automaton3(), automaton3_accept(), automaton3_reject()),
+            (automaton4(), automaton4_accept(), automaton4_reject()),
         ]
     }
 
     #[ignore]
     #[test]
     fn test_dot() {
-        automaton0().write_dot(0).unwrap();
-        automaton1().write_dot(1).unwrap();
-        automaton2().write_dot(2).unwrap();
-        automaton3().write_dot(3).unwrap();
+        for (i, (aut, _, _)) in automaton_list().into_iter().enumerate() {
+            aut.write_dot(i as u8).unwrap();
+        }
     }
 
     #[test]
@@ -187,6 +229,7 @@ mod tests {
         assert!(!automaton1().is_empty());
         assert!(!automaton2().is_empty());
         assert!(!automaton3().is_empty());
+        assert!(!automaton4().is_empty());
     }
 
     #[test]
@@ -195,16 +238,17 @@ mod tests {
         assert!(automaton1().is_full());
         assert!(!automaton2().is_full());
         assert!(!automaton3().is_full());
+        assert!(!automaton4().is_full());
     }
 
     #[test]
     fn test_run() {
-        for (aut, acc, rej) in automaton_list() {
+        for (i, (aut, acc, rej)) in automaton_list().into_iter().enumerate() {
             if let Some(e) = acc.iter().find(|x| !aut.run(x)) {
-                panic!("{:?}", e);
+                panic!("{} should have accepted {:?}", i, e);
             }
             if let Some(e) = rej.iter().find(|x| aut.run(x)) {
-                panic!("{:?}", e);
+                panic!("{} shouldn't have accepted {:?}", i, e);
             }
         }
     }

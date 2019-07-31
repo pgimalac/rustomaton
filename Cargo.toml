@@ -5,3 +5,4 @@ authors = ["Pierre Gimalac <pierre.gimalac@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+logos = "0.9.7"
