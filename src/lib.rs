@@ -8,9 +8,12 @@ pub mod regex;
 mod parser;
 mod utils;
 
+/// https://en.wikipedia.org/wiki/Regular_language
+/// https://en.wikipedia.org/wiki/Finite-state_machine
+
 #[cfg(test)]
 mod tests {
-    use crate::automaton::{Automata, Runnable};
+    use crate::automaton::{Automata, Buildable};
     use crate::dfa::ToDfa;
     use crate::nfa::{ToNfa, NFA};
     use crate::regex::Regex;

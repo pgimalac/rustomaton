@@ -1,5 +1,5 @@
 use crate::{
-    automaton::{Automata, Automaton},
+    automaton::{Automaton, Buildable},
     dfa::{ToDfa, DFA},
     nfa::{ToNfa, NFA},
     parser::*,
@@ -175,7 +175,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToString for Operations<V> {
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> Automata<V, Regex<V>> for Regex<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> Buildable<V> for Regex<V> {
     fn unite(mut self, b: Regex<V>) -> Regex<V> {
         append_hashset(&mut self.alphabet, b.alphabet);
         self.regex = Union(vec![self.regex, b.regex]);
@@ -242,9 +242,9 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<DFA<V>> for Regex<
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<Automaton<V>> for Regex<V> {
     fn eq(&self, b: &Automaton<V>) -> bool {
         match b {
-            Automaton::DFA(v) => self.eq(&**v),
-            Automaton::NFA(v) => self.eq(&**v),
-            Automaton::REG(v) => self.eq(&**v),
+            Automaton::DFA(v) => self.eq(&*v),
+            Automaton::NFA(v) => self.eq(&*v),
+            Automaton::REG(v) => self.eq(&*v),
         }
     }
 }

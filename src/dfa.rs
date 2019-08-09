@@ -1,4 +1,4 @@
-use crate::automaton::{Automata, Automaton, Runnable};
+use crate::automaton::{Automata, Automaton, Buildable};
 use crate::nfa::{ToNfa, NFA};
 use crate::regex::{Regex, ToRegex};
 use std::cmp::{Ordering, Ordering::*, PartialEq, PartialOrd};
@@ -39,7 +39,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> DFA<V> {
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> Runnable<V> for DFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> Automata<V> for DFA<V> {
     fn run(&self, v: &Vec<V>) -> bool {
         let mut actual = self.initial;
         for l in v {
@@ -138,7 +138,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Runnable<V> for DFA<V> {
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> Automata<V, DFA<V>> for DFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> Buildable<V> for DFA<V> {
     fn unite(self, b: DFA<V>) -> DFA<V> {
         self.to_nfa().unite(b.to_nfa()).to_dfa()
     }
@@ -214,9 +214,9 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<Regex<V>> for DFA<
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<Automaton<V>> for DFA<V> {
     fn eq(&self, b: &Automaton<V>) -> bool {
         match b {
-            Automaton::DFA(v) => self.eq(&**v),
-            Automaton::NFA(v) => self.eq(&**v),
-            Automaton::REG(v) => self.eq(&**v),
+            Automaton::DFA(v) => self.eq(&*v),
+            Automaton::NFA(v) => self.eq(&*v),
+            Automaton::REG(v) => self.eq(&*v),
         }
     }
 }

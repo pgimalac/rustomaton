@@ -1,7 +1,7 @@
 A Rust automaton project
 
 ### TODO
-- [ ] parse a regexp to get an automaton
+- [x] parse a regexp to get an automaton
 - [ ] export an automaton to a text file
 - [x] export an automaton to a dot file
 - [ ] export an automaton to a regexp
@@ -24,3 +24,4 @@ A Rust automaton project
 - [ ] improve algorithms (for example coreachable, maybe eq, ...)
 - [x] tests
 - [ ] more tests
+- [ ] doc comments

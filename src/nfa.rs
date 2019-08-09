@@ -1,4 +1,4 @@
-use crate::automaton::{Automata, Automaton, Runnable};
+use crate::automaton::{Automata, Automaton, Buildable};
 use crate::dfa::{ToDfa, DFA};
 use crate::regex::{Regex, ToRegex};
 use crate::utils::*;
@@ -240,7 +240,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToRegex<V> for NFA<V> {
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> Runnable<V> for NFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> Automata<V> for NFA<V> {
     fn run(&self, v: &Vec<V>) -> bool {
         if self.initials.is_empty() {
             return false;
@@ -457,7 +457,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Runnable<V> for NFA<V> {
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> Automata<V, NFA<V>> for NFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> Buildable<V> for NFA<V> {
     fn unite(mut self, b: NFA<V>) -> NFA<V> {
         let NFA {
             alphabet,
@@ -622,9 +622,9 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<Regex<V>> for NFA<
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<Automaton<V>> for NFA<V> {
     fn eq(&self, b: &Automaton<V>) -> bool {
         match b {
-            Automaton::DFA(v) => self.eq(&**v),
-            Automaton::NFA(v) => self.eq(&**v),
-            Automaton::REG(v) => self.eq(&**v),
+            Automaton::DFA(v) => self.eq(&*v),
+            Automaton::NFA(v) => self.eq(&*v),
+            Automaton::REG(v) => self.eq(&*v),
         }
     }
 }
