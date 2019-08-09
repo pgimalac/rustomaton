@@ -10,6 +10,7 @@ use std::iter::{repeat, FromIterator};
 use std::ops::{Add, Bound::*, Mul, Neg, Not, RangeBounds, Sub};
 use std::str::FromStr;
 
+/// https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton
 #[derive(Debug, Clone)]
 pub struct NFA<V: Eq + Hash + Display + Copy + Clone + Debug> {
     pub(crate) alphabet: HashSet<V>,
@@ -18,6 +19,7 @@ pub struct NFA<V: Eq + Hash + Display + Copy + Clone + Debug> {
     pub(crate) transitions: Vec<HashMap<V, Vec<usize>>>,
 }
 
+/// An interface for structs that can be converted into a NFA.
 pub trait ToNfa<V: Eq + Hash + Display + Copy + Clone + Debug> {
     fn to_nfa(&self) -> NFA<V>;
 }
@@ -25,12 +27,14 @@ pub trait ToNfa<V: Eq + Hash + Display + Copy + Clone + Debug> {
 /* IMPLEMENTATION OF NFA */
 
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> NFA<V> {
-    pub fn intersect(self, b: NFA<V>) -> NFA<V> {
-        self.negate().unite(b.negate()).negate().to_nfa()
+    /// Returns an NFA that accepts a word if and only if this word is accepted by both `self` and `other`.
+    pub fn intersect(self, other: NFA<V>) -> NFA<V> {
+        self.negate().unite(other.negate()).negate().to_nfa()
     }
 
-    pub fn contains(&self, b: &NFA<V>) -> bool {
-        self.clone().negate().intersect(b.clone()).is_empty()
+    /// A contains B if and only if for each `word` w, if B `accepts` w then A `accepts` w.
+    pub fn contains(&self, other: &NFA<V>) -> bool {
+        self.clone().negate().intersect(other.clone()).is_empty()
     }
 
     fn small_to_dfa(&self) -> DFA<V> {
@@ -88,6 +92,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> NFA<V> {
         unimplemented!()
     }
 
+    /// Export to dotfile in dots/automaton/i.dot
     pub fn write_dot(&self, i: u8) -> Result<(), std::io::Error> {
         use std::fs::File;
         use std::io::Write;
@@ -149,6 +154,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> NFA<V> {
         Ok(())
     }
 
+    /// Returns an empty NFA.
     pub fn new_empty(alphabet: HashSet<V>) -> NFA<V> {
         NFA {
             alphabet,
@@ -158,6 +164,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> NFA<V> {
         }
     }
 
+    /// Returns a full NFA.
     pub fn new_full(alphabet: HashSet<V>) -> NFA<V> {
         NFA {
             transitions: vec![alphabet.iter().map(|v| (*v, vec![0])).collect()],
@@ -167,8 +174,9 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> NFA<V> {
         }
     }
 
-    pub fn new_length(alphabet: HashSet<V>, l: usize) -> NFA<V> {
-        let mut transitions: Vec<_> = repeat(HashMap::new()).take(l).collect();
+    /// Returns a NFA that accepts all words of the given length.
+    pub fn new_length(alphabet: HashSet<V>, len: usize) -> NFA<V> {
+        let mut transitions: Vec<_> = repeat(HashMap::new()).take(len).collect();
         for (i, map) in transitions.iter_mut().enumerate() {
             for v in &alphabet {
                 map.insert(*v, vec![i + 1]);
@@ -180,13 +188,14 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> NFA<V> {
         NFA {
             alphabet,
             initials: (0..=0).collect(),
-            finals: (l..=l).collect(),
+            finals: (len..=len).collect(),
             transitions,
         }
     }
 
-    pub fn new_matching(alphabet: HashSet<V>, s: &Vec<V>) -> NFA<V> {
-        let l = s.len();
+    /// Returns a NFA that accepts only the given word.
+    pub fn new_matching(alphabet: HashSet<V>, word: &Vec<V>) -> NFA<V> {
+        let l = word.len();
         let mut nfa = NFA {
             alphabet,
             initials: (0..=0).collect(),
@@ -194,13 +203,14 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> NFA<V> {
             transitions: repeat(HashMap::new()).take(l + 1).collect(),
         };
 
-        for (i, l) in s.into_iter().enumerate() {
+        for (i, l) in word.into_iter().enumerate() {
             nfa.transitions[i].insert(*l, vec![i + 1]);
         }
 
         nfa
     }
 
+    /// Returns a NFA that accepts only the empty word.
     pub fn new_empty_word(alphabet: HashSet<V>) -> NFA<V> {
         NFA {
             alphabet,
@@ -458,13 +468,13 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Automata<V> for NFA<V> {
 }
 
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> Buildable<V> for NFA<V> {
-    fn unite(mut self, b: NFA<V>) -> NFA<V> {
+    fn unite(mut self, other: NFA<V>) -> NFA<V> {
         let NFA {
             alphabet,
             initials,
             finals,
             transitions,
-        } = b;
+        } = other;
 
         let l = self.transitions.len();
 
@@ -476,15 +486,15 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Buildable<V> for NFA<V> {
         self
     }
 
-    fn concatenate(mut self, mut b: NFA<V>) -> NFA<V> {
+    fn concatenate(mut self, mut other: NFA<V>) -> NFA<V> {
         let l = self.transitions.len();
-        shift_fnda(&mut b, l);
+        shift_fnda(&mut other, l);
         let NFA {
             alphabet,
             initials,
             finals,
             mut transitions,
-        } = b;
+        } = other;
 
         append_hashset(&mut self.alphabet, alphabet);
 
@@ -602,26 +612,26 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Buildable<V> for NFA<V> {
 }
 
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<NFA<V>> for NFA<V> {
-    fn eq(&self, b: &NFA<V>) -> bool {
-        self.le(b) && self.ge(b)
+    fn eq(&self, other: &NFA<V>) -> bool {
+        self.le(other) && self.ge(other)
     }
 }
 
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<DFA<V>> for NFA<V> {
-    fn eq(&self, b: &DFA<V>) -> bool {
-        self.eq(&b.to_nfa())
+    fn eq(&self, other: &DFA<V>) -> bool {
+        self.eq(&other.to_nfa())
     }
 }
 
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<Regex<V>> for NFA<V> {
-    fn eq(&self, b: &Regex<V>) -> bool {
-        self.eq(&b.to_nfa())
+    fn eq(&self, other: &Regex<V>) -> bool {
+        self.eq(&other.to_nfa())
     }
 }
 
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<Automaton<V>> for NFA<V> {
-    fn eq(&self, b: &Automaton<V>) -> bool {
-        match b {
+    fn eq(&self, other: &Automaton<V>) -> bool {
+        match other {
             Automaton::DFA(v) => self.eq(&*v),
             Automaton::NFA(v) => self.eq(&*v),
             Automaton::REG(v) => self.eq(&*v),
@@ -659,11 +669,12 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialOrd for NFA<V> {
 impl FromStr for NFA<char> {
     type Err = String;
 
-    fn from_str(_s: &str) -> Result<NFA<char>, Self::Err> {
-        unimplemented!()
+    fn from_str(s: &str) -> Result<NFA<char>, Self::Err> {
+        s.parse::<Regex<char>>().map(|x| x.to_nfa())
     }
 }
 
+/// The multiplication of A and B is A.concatenate(B)
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> Mul for NFA<V> {
     type Output = Self;
 
@@ -672,6 +683,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Mul for NFA<V> {
     }
 }
 
+/// The negation of A is A.negate().
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> Neg for NFA<V> {
     type Output = Self;
 
@@ -680,6 +692,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Neg for NFA<V> {
     }
 }
 
+/// The opposite of A is A.reverse().
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> Not for NFA<V> {
     type Output = Self;
 
@@ -688,6 +701,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Not for NFA<V> {
     }
 }
 
+/// The substraction of A and B is an automaton that accepts a word if and only if A accepts it and B doesn't.
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> Sub for NFA<V> {
     type Output = Self;
 
@@ -696,6 +710,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Sub for NFA<V> {
     }
 }
 
+/// The addition fo A and B is an automaton that accepts a word if and only if A or B accept it.
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> Add for NFA<V> {
     type Output = Self;
 

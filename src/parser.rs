@@ -3,6 +3,7 @@ use crate::regex::Operations;
 use logos::Logos;
 use std::collections::VecDeque;
 
+/// The token used by [`logos`](/logos/index.html`]).
 #[derive(Logos, Debug, PartialEq, Clone)]
 pub enum Token {
     #[end]
@@ -53,7 +54,7 @@ pub enum Token {
             REG|REG
 */
 
-pub fn tokens(s: &str) -> VecDeque<(Token, &str)> {
+pub(crate) fn tokens(s: &str) -> VecDeque<(Token, &str)> {
     let mut lexer = Token::lexer(s);
     let mut tokens = VecDeque::new();
 
@@ -65,11 +66,11 @@ pub fn tokens(s: &str) -> VecDeque<(Token, &str)> {
     tokens
 }
 
-pub fn peak(tokens: &mut VecDeque<(Token, &str)>) -> Option<Token> {
+pub(crate) fn peak(tokens: &mut VecDeque<(Token, &str)>) -> Option<Token> {
     tokens.get(0).map(|x| x.0.clone())
 }
 
-pub fn read_union(tokens: &mut VecDeque<(Token, &str)>) -> Result<Operations<char>, String> {
+pub(crate) fn read_union(tokens: &mut VecDeque<(Token, &str)>) -> Result<Operations<char>, String> {
     let mut u = Vec::new();
 
     loop {
@@ -88,7 +89,7 @@ pub fn read_union(tokens: &mut VecDeque<(Token, &str)>) -> Result<Operations<cha
     }
 }
 
-pub fn read_paren(tokens: &mut VecDeque<(Token, &str)>) -> Result<Operations<char>, String> {
+pub(crate) fn read_paren(tokens: &mut VecDeque<(Token, &str)>) -> Result<Operations<char>, String> {
     if peak(tokens) != Some(Lpar) {
         return Err("Expected left parenthesis.".to_string());
     }
@@ -103,7 +104,7 @@ pub fn read_paren(tokens: &mut VecDeque<(Token, &str)>) -> Result<Operations<cha
     Ok(read_quantif(tokens, o))
 }
 
-pub fn read_quantif(
+pub(crate) fn read_quantif(
     tokens: &mut VecDeque<(Token, &str)>,
     mut o: Operations<char>,
 ) -> Operations<char> {
@@ -123,7 +124,9 @@ pub fn read_quantif(
     return o;
 }
 
-pub fn read_letter(tokens: &mut VecDeque<(Token, &str)>) -> Result<Operations<char>, String> {
+pub(crate) fn read_letter(
+    tokens: &mut VecDeque<(Token, &str)>,
+) -> Result<Operations<char>, String> {
     if let Some(x) = peak(tokens) {
         let o = if x == Dot {
             Operations::Dot
@@ -141,7 +144,9 @@ pub fn read_letter(tokens: &mut VecDeque<(Token, &str)>) -> Result<Operations<ch
     }
 }
 
-pub fn read_concat(tokens: &mut VecDeque<(Token, &str)>) -> Result<Operations<char>, String> {
+pub(crate) fn read_concat(
+    tokens: &mut VecDeque<(Token, &str)>,
+) -> Result<Operations<char>, String> {
     let mut c = Vec::new();
     while let Some(x) = peak(tokens) {
         if x == Dot || x == Epsilon || x == Letter {

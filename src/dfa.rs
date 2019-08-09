@@ -8,6 +8,7 @@ use std::hash::Hash;
 use std::ops::{Add, Mul, Neg, Not, RangeBounds, Sub};
 use std::str::FromStr;
 
+/// https://en.wikipedia.org/wiki/Deterministic_finite_automaton
 #[derive(Debug, Clone)]
 pub struct DFA<V: Eq + Hash + Display + Copy + Clone + Debug> {
     pub(crate) alphabet: HashSet<V>,
@@ -16,6 +17,7 @@ pub struct DFA<V: Eq + Hash + Display + Copy + Clone + Debug> {
     pub(crate) transitions: Vec<HashMap<V, usize>>,
 }
 
+/// An interface for structs that can be converted into a DFA.
 pub trait ToDfa<V: Eq + Hash + Display + Copy + Clone + Debug> {
     fn to_dfa(&self) -> DFA<V>;
 }
@@ -25,15 +27,17 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> DFA<V> {
         self.negate().unite(b.negate()).negate()
     }
 
-    // Brzozowski
+    /// The algorithm used is https://en.wikipedia.org/wiki/DFA_minimization#Brzozowski's_algorithm.
     pub fn minimize(self) -> DFA<V> {
         self.reverse().to_dfa().reverse().to_dfa()
     }
 
+    /// A contains B if and only if for each `word` w, if B `accepts` w then A `accepts` w.
     pub fn contains(&self, b: &DFA<V>) -> bool {
         self.to_nfa().contains(&b.to_nfa())
     }
 
+    /// Export to dotfile in dots/automaton/i.dot
     pub fn write_dot(&self, n: u8) -> Result<(), std::io::Error> {
         self.to_nfa().write_dot(n)
     }
@@ -256,6 +260,7 @@ impl FromStr for DFA<char> {
     }
 }
 
+/// The multiplication of A and B is A.concatenate(B)
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> Mul for DFA<V> {
     type Output = Self;
 
@@ -264,6 +269,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Mul for DFA<V> {
     }
 }
 
+/// The negation of A is A.negate().
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> Neg for DFA<V> {
     type Output = Self;
 
@@ -272,6 +278,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Neg for DFA<V> {
     }
 }
 
+/// The opposite of A is A.reverse().
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> Not for DFA<V> {
     type Output = Self;
 
@@ -280,6 +287,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Not for DFA<V> {
     }
 }
 
+/// The substraction of A and B is an automaton that accepts a word if and only if A accepts it and B doesn't.
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> Sub for DFA<V> {
     type Output = Self;
 
@@ -288,6 +296,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Sub for DFA<V> {
     }
 }
 
+/// The addition fo A and B is an automaton that accepts a word if and only if A or B accept it.
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> Add for DFA<V> {
     type Output = Self;
 

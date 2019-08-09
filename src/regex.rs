@@ -13,6 +13,7 @@ use std::ops::{Add, Bound::*, Mul, RangeBounds};
 use std::str::FromStr;
 use Operations::*;
 
+/// Represents a regex.
 #[derive(Debug, Clone)]
 pub struct Regex<V: Eq + Hash + Display + Copy + Clone + Debug> {
     pub(crate) alphabet: HashSet<V>,
@@ -20,7 +21,7 @@ pub struct Regex<V: Eq + Hash + Display + Copy + Clone + Debug> {
 }
 
 #[derive(Debug, Clone)]
-pub enum Operations<V: Eq + Hash + Display + Copy + Clone + Debug> {
+pub(crate) enum Operations<V: Eq + Hash + Display + Copy + Clone + Debug> {
     Union(Vec<Operations<V>>),
     Concat(Vec<Operations<V>>),
     Repeat(Box<Operations<V>>, usize, Option<usize>),
@@ -29,6 +30,7 @@ pub enum Operations<V: Eq + Hash + Display + Copy + Clone + Debug> {
     Dot,
 }
 
+/// An interface for structs that can be converted into a Regex.
 pub trait ToRegex<V: Eq + Hash + Display + Copy + Clone + Debug> {
     fn to_regex(&self) -> Regex<V>;
 }
@@ -52,18 +54,26 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToRegex<V> for Regex<V> {
 }
 
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> Regex<V> {
+    /// Simplify the regex.
+    ///
+    /// Far from optimal.
     pub fn simplify(&mut self) {
         self.regex = self.to_dfa().minimize().to_regex().regex
     }
 
+    /// A contains B if and only if for each `word` w, if B `accepts` w then A `accepts` w.
     pub fn contains(&self, other: &Regex<V>) -> bool {
         self.to_nfa().contains(&other.to_nfa())
     }
 }
 
 impl Regex<char> {
-    pub fn parse_with_alphabet(alphabet: HashSet<char>, s: &str) -> Result<Regex<char>, String> {
-        let mut tokens = tokens(s);
+    /// Returns the Regex<char> struct corresponding to the given regex.
+    pub fn parse_with_alphabet(
+        alphabet: HashSet<char>,
+        regex: &str,
+    ) -> Result<Regex<char>, String> {
+        let mut tokens = tokens(regex);
 
         let regex = read_union(&mut tokens)?;
         if !tokens.is_empty() {
@@ -76,6 +86,7 @@ impl Regex<char> {
     }
 }
 
+/// Returns the Regex<char> struct corresponding to the given regex, the alphabet is composed of the letter used in the regexp (without '+', '*', '?', '.', '(', ')', '|', '𝜀').
 impl FromStr for Regex<char> {
     type Err = String;
 

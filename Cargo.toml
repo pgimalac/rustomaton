@@ -1,5 +1,5 @@
 [package]
-name = "rust-automaton"
+name = "rustomaton"
 version = "0.1.0"
 authors = ["Pierre Gimalac <pierre.gimalac@gmail.com>"]
 edition = "2018"

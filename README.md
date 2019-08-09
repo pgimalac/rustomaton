@@ -24,4 +24,5 @@ A Rust automaton project
 - [ ] improve algorithms (for example coreachable, maybe eq, ...)
 - [x] tests
 - [ ] more tests
-- [ ] doc comments
+- [x] doc comments
+- [ ] doc tests
