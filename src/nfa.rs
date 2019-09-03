@@ -3,11 +3,11 @@ use crate::dfa::{ToDfa, DFA};
 use crate::regex::{Regex, ToRegex};
 use crate::utils::*;
 use std::cmp::{Ordering, Ordering::*, PartialEq, PartialOrd};
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::iter::{repeat, FromIterator};
-use std::ops::{Add, Bound::*, Mul, Neg, Not, RangeBounds, Sub};
+use std::ops::{Add, BitOr, Bound::*, Mul, Neg, Not, RangeBounds, Sub};
 use std::str::FromStr;
 
 /// https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton
@@ -37,18 +37,17 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> NFA<V> {
         self.clone().negate().intersect(other.clone()).is_empty()
     }
 
-    fn small_to_dfa(&self) -> DFA<V> {
+    fn small_to_dfa<T: Eq + Hash + Copy + BitOr<Output = T>, C: Fn(usize) -> T>(
+        &self,
+        zero: T,
+        shift: C,
+    ) -> DFA<V> {
         let mut map = HashMap::new();
         let mut stack = VecDeque::new();
 
-        let mut dfa = DFA {
-            alphabet: self.alphabet.clone(),
-            initial: 0,
-            finals: HashSet::new(),
-            transitions: vec![HashMap::new()],
-        };
+        let mut dfa = DFA::new_empty(&self.alphabet);
 
-        let i: u128 = self.initials.iter().fold(0, |acc, x| acc | (1 << *x));
+        let i: T = self.initials.iter().fold(zero, |acc, x| acc | shift(*x));
         if self.initials.iter().any(|x| self.finals.contains(x)) {
             dfa.finals.insert(0);
         }
@@ -71,7 +70,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> NFA<V> {
                     continue;
                 }
 
-                let other = it.iter().fold(0, |acc, x| acc | 1 << *x);
+                let other = it.iter().fold(zero, |acc, x| acc | shift(*x));
                 if !map.contains_key(&other) {
                     let l = dfa.transitions.len();
                     map.insert(other, l);
@@ -89,7 +88,52 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> NFA<V> {
     }
 
     fn big_to_dfa(&self) -> DFA<V> {
-        unimplemented!()
+        let mut map: HashMap<BTreeSet<usize>, usize> = HashMap::new();
+        let mut stack = VecDeque::new();
+
+        let mut dfa = DFA::new_empty(&self.alphabet);
+
+        let initial: BTreeSet<usize> = self.initials.iter().map(|x| *x).collect();
+        map.insert(initial.clone(), 0);
+        stack.push_back(initial);
+
+        if self.initials.iter().any(|x| self.finals.contains(x)) {
+            dfa.finals.insert(0);
+        }
+
+        while let Some(set) = stack.pop_front() {
+            let num = *map.get(&set).unwrap();
+            for v in &self.alphabet {
+                let mut it = HashSet::new();
+                for s in &set {
+                    if let Some(transitions) = self.transitions[*s].get(&v) {
+                        for t in transitions {
+                            it.insert(*t);
+                        }
+                    }
+                }
+                if it.is_empty() {
+                    continue;
+                }
+
+                let other = it.iter().fold(BTreeSet::new(), |mut acc, x| {
+                    acc.insert(*x);
+                    acc
+                });
+                if !map.contains_key(&other) {
+                    let l = dfa.transitions.len();
+                    map.insert(other.clone(), l);
+                    if it.iter().any(|x| self.finals.contains(x)) {
+                        dfa.finals.insert(l);
+                    }
+                    stack.push_back(other.clone());
+                    dfa.transitions.push(HashMap::new());
+                }
+                dfa.transitions[num].insert(*v, *map.get(&other).unwrap());
+            }
+        }
+
+        dfa
     }
 
     /// Export to dotfile in dots/automaton/i.dot
@@ -224,14 +268,13 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> NFA<V> {
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToDfa<V> for NFA<V> {
     fn to_dfa(&self) -> DFA<V> {
         if self.is_empty() {
-            DFA {
-                alphabet: self.alphabet.clone(),
-                initial: 0,
-                finals: HashSet::new(),
-                transitions: vec![HashMap::new()],
-            }
+            DFA::new_empty(&self.alphabet)
+        } else if self.transitions.len() < 32 {
+            self.small_to_dfa(0 as u32, |x| 1 << x)
+        } else if self.transitions.len() < 64 {
+            self.small_to_dfa(0 as u64, |x| 1 << x)
         } else if self.transitions.len() < 128 {
-            self.small_to_dfa()
+            self.small_to_dfa(0 as u128, |x| 1 << x)
         } else {
             self.big_to_dfa()
         }

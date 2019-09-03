@@ -41,6 +41,15 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> DFA<V> {
     pub fn write_dot(&self, n: u8) -> Result<(), std::io::Error> {
         self.to_nfa().write_dot(n)
     }
+
+    pub fn new_empty(alphabet: &HashSet<V>) -> DFA<V> {
+        DFA {
+            alphabet: alphabet.clone(),
+            initial: 0,
+            finals: HashSet::new(),
+            transitions: vec![HashMap::new()],
+        }
+    }
 }
 
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> Automata<V> for DFA<V> {

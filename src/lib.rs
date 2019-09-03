@@ -2,6 +2,7 @@ extern crate logos;
 
 pub mod automaton;
 pub mod dfa;
+pub mod generator;
 pub mod nfa;
 pub mod regex;
 
@@ -15,6 +16,7 @@ mod utils;
 mod tests {
     use crate::automaton::{Automata, Buildable};
     use crate::dfa::ToDfa;
+    use crate::generator::new_generator;
     use crate::nfa::{ToNfa, NFA};
     use crate::regex::Regex;
     use std::collections::{HashMap, HashSet};
@@ -155,10 +157,12 @@ mod tests {
     }
 
     fn automaton4() -> NFA<char> {
-        "(018)*4(5+|6|7*)?3+.29?|𝜀"
-            .parse::<Regex<char>>()
-            .unwrap()
-            .to_nfa()
+        Regex::parse_with_alphabet(
+            (b'0'..=b'9').map(char::from).collect(),
+            "(018)*4(5+|6|7*)?3+.29?|𝜀",
+        )
+        .unwrap()
+        .to_nfa()
     }
 
     fn automaton4_accept() -> Vec<Vec<char>> {
@@ -184,6 +188,103 @@ mod tests {
         ]
     }
 
+    fn automaton5() -> NFA<char> {
+        Regex::parse_with_alphabet(
+            (b'0'..=b'9').map(char::from).collect(),
+            "2|5+|6|9*|(𝜀42?78+3|2+|71+)+",
+        )
+        .unwrap()
+        .to_nfa()
+    }
+
+    fn automaton5_accept() -> Vec<Vec<char>> {
+        vec![
+            vec![],
+            vec!['2'],
+            vec!['5', '5', '5'],
+            vec!['9'],
+            vec!['4', '2', '7', '8', '8', '3', '7', '1', '1', '1', '2'],
+            vec![
+                '4', '7', '8', '3', '2', '7', '1', '1', '2', '7', '1', '4', '2', '7', '8', '3',
+            ],
+        ]
+    }
+
+    fn automaton5_reject() -> Vec<Vec<char>> {
+        vec![
+            vec!['4'],
+            vec!['2', '2', '7'],
+            vec!['9', '6'],
+            vec!['4', '2', '2', '7', '8', '3'],
+            vec!['7', '1', '2', '2', '4', '2', '7', '3'],
+        ]
+    }
+
+    fn automaton6() -> NFA<char> {
+        Regex::parse_with_alphabet(
+            (b'0'..=b'9').map(char::from).collect(),
+            "(3*8*|4(1|4)*)(9+|7*)5*6|18|8*5|4|12|9+",
+        )
+        .unwrap()
+        .to_nfa()
+    }
+
+    fn automaton6_accept() -> Vec<Vec<char>> {
+        vec![
+            vec!['1', '2'],
+            vec!['4'],
+            vec!['8', '8', '8', '8', '8', '5'],
+            vec!['9', '9'],
+            vec!['6'],
+            vec!['3', '3', '3', '8', '8', '9', '9', '9', '5', '5', '5', '6'],
+            vec!['4', '6'],
+            vec!['4', '1', '4', '1', '4', '7', '7', '7', '5', '6'],
+        ]
+    }
+
+    fn automaton6_reject() -> Vec<Vec<char>> {
+        vec![
+            vec![],
+            vec!['4', '9', '7', '6'],
+            vec!['1', '4', '4', '1', '6'],
+            vec!['2'],
+            vec!['3', '4', '6'],
+            vec!['3', '9', '5', '5', '5'],
+        ]
+    }
+
+    fn automaton7() -> NFA<char> {
+        Regex::parse_with_alphabet(
+            (b'0'..=b'9').map(char::from).collect(),
+            "0(8+4*3*)*|86+(3+|578)((3*|4?6?)+|(4*|86+|2)37*|54|.|5*)|.8*|(3*0*)+|2*|7*2|.3|3*5*|(50|7)1|21|4+|(30*|6|9*2*)*|1+(608*)*",
+        )
+        .unwrap()
+        .to_nfa()
+    }
+
+    fn automaton7_accept() -> Vec<Vec<char>> {
+        vec![
+            vec![],
+            vec!['3'],
+            vec!['5'],
+            vec!['2', '1'],
+            vec!['1', '1', '6', '0', '6', '0', '6', '0', '8', '8', '8', '8'],
+            vec!['0'],
+            vec!['8', '6', '6', '6', '3', '3', '3', '5', '4'],
+            vec!['3', '0', '0', '0', '6', '9', '2', '2'],
+            vec!['6', '2'],
+        ]
+    }
+
+    fn automaton7_reject() -> Vec<Vec<char>> {
+        vec![
+            vec!['8', '9', '6', '5', '3', '5', '2'],
+            vec!['3', '3', '3', '0', '0', '0', '3', '3', '1'],
+            vec!['9', '9', '9', '5'],
+            vec!['5', '5', '5', '3'],
+        ]
+    }
+
     fn automaton_list() -> Vec<(NFA<char>, Vec<Vec<char>>, Vec<Vec<char>>)> {
         vec![
             (automaton0(), automaton0_accept(), automaton0_reject()),
@@ -191,6 +292,9 @@ mod tests {
             (automaton2(), automaton2_accept(), automaton2_reject()),
             (automaton3(), automaton3_accept(), automaton3_reject()),
             (automaton4(), automaton4_accept(), automaton4_reject()),
+            (automaton5(), automaton5_accept(), automaton5_reject()),
+            (automaton6(), automaton6_accept(), automaton6_reject()),
+            (automaton7(), automaton7_accept(), automaton7_reject()),
         ]
     }
 
@@ -419,6 +523,15 @@ mod tests {
             if !aut.eq(&aut1) {
                 panic!("{} should be equal to itself minimized", i);
             }
+        }
+    }
+
+    #[test]
+    #[ignore]
+    fn test_generator() {
+        let mut gen = new_generator((b'0'..=b'9').map(char::from).collect(), 20);
+        for _ in 0..10 {
+            println!("{}", gen.run());
         }
     }
 }
