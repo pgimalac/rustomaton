@@ -18,7 +18,7 @@ mod tests {
     use crate::dfa::ToDfa;
     use crate::generator::new_generator;
     use crate::nfa::{ToNfa, NFA};
-    use crate::regex::Regex;
+    use crate::regex::{Regex, ToRegex};
     use std::collections::{HashMap, HashSet};
     use std::iter::repeat;
 
@@ -532,6 +532,15 @@ mod tests {
         let mut gen = new_generator((b'0'..=b'9').map(char::from).collect(), 20);
         for _ in 0..10 {
             println!("{}", gen.run());
+        }
+    }
+
+    #[test]
+    fn test_to_regex() {
+        for (i, (aut, _, _)) in automaton_list().into_iter().enumerate() {
+            if i == 1 {
+                println!("{} : {}", i, aut.to_regex().to_string());
+            }
         }
     }
 }

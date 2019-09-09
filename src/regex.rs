@@ -6,10 +6,10 @@ use crate::{
     utils::append_hashset,
 };
 use std::cmp::{Ordering, Ordering::*};
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
-use std::ops::{Add, Bound::*, Mul, RangeBounds};
+use std::ops::{Add, AddAssign, Bound::*, Mul, RangeBounds};
 use std::str::FromStr;
 use Operations::*;
 
@@ -20,13 +20,14 @@ pub struct Regex<V: Eq + Hash + Display + Copy + Clone + Debug> {
     pub(crate) regex: Operations<V>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Operations<V: Eq + Hash + Display + Copy + Clone + Debug> {
-    Union(Vec<Operations<V>>),
-    Concat(Vec<Operations<V>>),
+    Union(VecDeque<Operations<V>>),
+    Concat(VecDeque<Operations<V>>),
     Repeat(Box<Operations<V>>, usize, Option<usize>),
     Letter(V),
     Epsilon,
+    Empty,
     Dot,
 }
 
@@ -74,6 +75,12 @@ impl Regex<char> {
         regex: &str,
     ) -> Result<Regex<char>, String> {
         let mut tokens = tokens(regex);
+        if tokens.is_empty() {
+            return Ok(Regex {
+                alphabet,
+                regex: Operations::Empty,
+            });
+        }
 
         let regex = read_union(&mut tokens)?;
         if !tokens.is_empty() {
@@ -121,6 +128,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Operations<V> {
             }
             Letter(a) => NFA::new_matching(alphabet.clone(), &vec![*a]),
             Epsilon => NFA::new_length(alphabet.clone(), 0),
+            Empty => NFA::new_empty(alphabet.clone()),
             Dot => NFA::new_length(alphabet.clone(), 1),
         }
     }
@@ -148,14 +156,20 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Operations<V> {
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToString for Operations<V> {
     fn to_string(&self) -> String {
         match self {
-            Union(v) => v.iter().fold(String::new(), |mut acc, x| {
-                acc.push('|');
-                acc.push_str(x.to_string().as_str());
+            Union(v) => {
+                let mut acc = String::new();
+                for x in v {
+                    acc.push_str(x.to_string().as_str());
+                    acc.push('|');
+                }
+                acc.pop();
                 acc
-            }),
+            }
             Concat(v) => {
                 let mut acc = String::new();
-                v.iter().for_each(|x| acc.push_str(x.to_string().as_str()));
+                v.iter()
+                    .map(|x| format!("({})", x.to_string().as_str()))
+                    .for_each(|x| acc.push_str(&x));
                 acc
             }
             Repeat(a, 0, None) => format!("({})*", a.to_string()),
@@ -181,6 +195,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToString for Operations<V> {
             }
             Letter(a) => format!("{}", a),
             Epsilon => format!("𝜀"),
+            Empty => format!("∅"),
             Dot => format!("."),
         }
     }
@@ -189,13 +204,13 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToString for Operations<V> {
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> Buildable<V> for Regex<V> {
     fn unite(mut self, b: Regex<V>) -> Regex<V> {
         append_hashset(&mut self.alphabet, b.alphabet);
-        self.regex = Union(vec![self.regex, b.regex]);
+        self.regex = self.regex + b.regex;
         self
     }
 
     fn concatenate(mut self, b: Regex<V>) -> Regex<V> {
         append_hashset(&mut self.alphabet, b.alphabet);
-        self.regex = Concat(vec![self.regex, b.regex]);
+        self.regex = self.regex * b.regex;
         self
     }
 
@@ -306,5 +321,63 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Mul for Regex<V> {
 
     fn mul(self, other: Regex<V>) -> Regex<V> {
         self.concatenate(other)
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> Add for Operations<V> {
+    type Output = Self;
+
+    fn add(self, other: Operations<V>) -> Operations<V> {
+        match (self, other) {
+            (Union(mut v1), Union(mut v2)) => {
+                v1.append(&mut v2);
+                Union(v1)
+            }
+            (Empty, op) => op,
+            (op, Empty) => op,
+            (Union(mut v), op) => {
+                v.push_back(op);
+                Union(v)
+            }
+            (op, Union(mut v)) => {
+                v.push_front(op);
+                Union(v)
+            }
+            (op1, op2) => Union(vec![op1, op2].into_iter().collect()),
+        }
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> Mul for Operations<V> {
+    type Output = Self;
+
+    fn mul(self, other: Operations<V>) -> Operations<V> {
+        match (self, other) {
+            (Concat(mut v1), Concat(mut v2)) => {
+                v1.append(&mut v2);
+                Concat(v1)
+            }
+            (Epsilon, op) => op,
+            (op, Epsilon) => op,
+            (Empty, _) => Empty,
+            (_, Empty) => Empty,
+            (Concat(mut v), op) => {
+                v.push_back(op);
+                Concat(v)
+            }
+            (op, Concat(mut v)) => {
+                v.push_front(op);
+                Concat(v)
+            }
+            (op1, op2) => Concat(vec![op1, op2].into_iter().collect()),
+        }
+    }
+}
+
+impl<V: Eq + Hash + Display + Copy + Clone + Debug> AddAssign for Operations<V> {
+    fn add_assign(&mut self, op: Operations<V>) {
+        let mut tmp = Operations::Epsilon;
+        std::mem::swap(&mut tmp, self);
+        *self = tmp + op;
     }
 }

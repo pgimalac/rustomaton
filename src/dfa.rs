@@ -185,7 +185,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToDfa<V> for DFA<V> {
 
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToRegex<V> for DFA<V> {
     fn to_regex(&self) -> Regex<V> {
-        unimplemented!()
+        self.to_nfa().to_regex()
     }
 }
 

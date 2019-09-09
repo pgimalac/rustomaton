@@ -1,6 +1,6 @@
 use crate::automaton::{Automata, Automaton, Buildable};
 use crate::dfa::{ToDfa, DFA};
-use crate::regex::{Regex, ToRegex};
+use crate::regex::{Operations, Regex, ToRegex};
 use crate::utils::*;
 use std::cmp::{Ordering, Ordering::*, PartialEq, PartialOrd};
 use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
@@ -289,7 +289,51 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToNfa<V> for NFA<V> {
 
 impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToRegex<V> for NFA<V> {
     fn to_regex(&self) -> Regex<V> {
-        unimplemented!()
+        let n = self.transitions.len();
+        if n == 0 {
+            return Regex {
+                alphabet: self.alphabet.clone(),
+                regex: Operations::Empty,
+            };
+        }
+
+        let mut mat1: Vec<Vec<Operations<V>>> = repeat(repeat(Operations::Empty).take(n).collect())
+            .take(n)
+            .collect();
+        let mut mat2: Vec<Vec<Operations<V>>> = mat1.clone();
+
+        for (i, m) in self.transitions.iter().enumerate() {
+            mat1[i][i] = Operations::Epsilon;
+            for (k, v) in m {
+                for &j in v {
+                    mat1[i][j] += Operations::Letter(*k);
+                }
+            }
+        }
+
+        for k in 0..n {
+            for i in 0..n {
+                for j in 0..n {
+                    mat2[i][j] = mat1[i][j].clone()
+                        + mat1[i][k].clone()
+                            * Operations::Repeat(Box::new(mat1[k][k].clone()), 0, None)
+                            * mat1[k][j].clone();
+                }
+            }
+            std::mem::swap(&mut mat1, &mut mat2);
+        }
+
+        let mut res = Operations::Empty;
+        for &st in &self.initials {
+            for &en in &self.finals {
+                res += mat1[st][en].clone();
+            }
+        }
+
+        return Regex {
+            alphabet: self.alphabet.clone(),
+            regex: res,
+        };
     }
 }
 

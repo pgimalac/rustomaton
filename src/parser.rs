@@ -71,10 +71,10 @@ pub(crate) fn peak(tokens: &mut VecDeque<(Token, &str)>) -> Option<Token> {
 }
 
 pub(crate) fn read_union(tokens: &mut VecDeque<(Token, &str)>) -> Result<Operations<char>, String> {
-    let mut u = Vec::new();
+    let mut u = VecDeque::new();
 
     loop {
-        u.push(read_concat(tokens)?);
+        u.push_back(read_concat(tokens)?);
         if peak(tokens) == Some(Union) {
             tokens.pop_front();
         } else {
@@ -83,7 +83,7 @@ pub(crate) fn read_union(tokens: &mut VecDeque<(Token, &str)>) -> Result<Operati
     }
 
     if u.len() == 1 {
-        Ok(u.pop().unwrap())
+        Ok(u.pop_front().unwrap())
     } else {
         Ok(Operations::Union(u))
     }
@@ -147,12 +147,12 @@ pub(crate) fn read_letter(
 pub(crate) fn read_concat(
     tokens: &mut VecDeque<(Token, &str)>,
 ) -> Result<Operations<char>, String> {
-    let mut c = Vec::new();
+    let mut c = VecDeque::new();
     while let Some(x) = peak(tokens) {
         if x == Dot || x == Epsilon || x == Letter {
-            c.push(read_letter(tokens)?);
+            c.push_back(read_letter(tokens)?);
         } else if x == Lpar {
-            c.push(read_paren(tokens)?);
+            c.push_back(read_paren(tokens)?);
         } else if x == Kleene || x == Plus || x == Question {
             return Err(format!(
                 "Unexpected {}",
@@ -166,7 +166,7 @@ pub(crate) fn read_concat(
     }
 
     if c.len() == 1 {
-        Ok(c.pop().unwrap())
+        Ok(c.pop_front().unwrap())
     } else {
         Ok(Operations::Concat(c))
     }
