@@ -19,7 +19,7 @@ use std::ops::RangeBounds;
 ///
 
 #[derive(Debug)]
-pub enum Automaton<V: Eq + Hash + Display + Copy + Clone + Debug> {
+pub enum Automaton<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> {
     /// This variant represents a [`DFA`](dfa/struct.DFA.html).
     DFA(DFA<V>),
     /// This variant represents a [`NFA`](dfa/struct.NFA.html).
@@ -32,7 +32,7 @@ pub enum Automaton<V: Eq + Hash + Display + Copy + Clone + Debug> {
 /// An interface to regroup functions used to build Automata.
 ///
 
-pub trait Buildable<V: Eq + Hash + Display + Copy + Clone + Debug> {
+pub trait Buildable<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> {
     /// Returns the automata that accepts a word if and only if it is accepted by `self` or by `other`.
     fn unite(self, other: Self) -> Self;
     /// Returns the automata that accepts a word if and only if it is the concatenation of a word accepted by `self` and of a word accepted by `other`.
@@ -72,7 +72,7 @@ pub trait Buildable<V: Eq + Hash + Display + Copy + Clone + Debug> {
 /// An automaton is said `full` if it accepts any `word`.
 ///
 
-pub trait Automata<V: Eq + Hash + Display + Copy + Clone + Debug> {
+pub trait Automata<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> {
     /// Returns `true` if and only if `word` is accepted by `self`.
     fn run(&self, word: &Vec<V>) -> bool;
 
@@ -103,7 +103,7 @@ pub trait Automata<V: Eq + Hash + Display + Copy + Clone + Debug> {
     fn reverse(self) -> Self;
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> Automaton<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Automaton<V> {
     /// A contains B if and only if for each `word` w, if B `accepts` w then A `accepts` w.
     pub fn contains(&self, other: &Automaton<V>) -> bool {
         let a = match self {
@@ -121,25 +121,25 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Automaton<V> {
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<Automaton<V>> for Automaton<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> PartialEq<Automaton<V>> for Automaton<V> {
     fn eq(&self, other: &Automaton<V>) -> bool {
         self.le(other) && self.ge(other)
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<DFA<V>> for Automaton<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> PartialEq<DFA<V>> for Automaton<V> {
     fn eq(&self, other: &DFA<V>) -> bool {
         self.eq(&other.to_nfa())
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<Regex<V>> for Automaton<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> PartialEq<Regex<V>> for Automaton<V> {
     fn eq(&self, other: &Regex<V>) -> bool {
         self.eq(&other.to_nfa())
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<NFA<V>> for Automaton<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> PartialEq<NFA<V>> for Automaton<V> {
     fn eq(&self, other: &NFA<V>) -> bool {
         match self {
             Automaton::DFA(v) => other.eq(&*v),
@@ -152,7 +152,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<NFA<V>> for Automa
 /// The partial ordering on two automatons A and B is defined as A < B if and only if B [`contains`] A.
 ///
 /// [`contains`]: ./enum.Automaton.html#method.contains
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialOrd for Automaton<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> PartialOrd for Automaton<V> {
     fn partial_cmp(&self, other: &Automaton<V>) -> Option<Ordering> {
         match (self.ge(&other), self.le(&other)) {
             (true, true) => Some(Equal),

@@ -23,7 +23,7 @@ pub fn shift_hashset(a: &mut HashSet<usize>, l: usize) {
     }
 }
 
-pub fn shift_fnda<V: Eq + Hash + Display + Copy + Clone + Debug>(a: &mut NFA<V>, l: usize) {
+pub fn shift_fnda<V: Eq + Hash + Display + Copy + Clone + Debug + Ord>(a: &mut NFA<V>, l: usize) {
     shift_hashset(&mut a.initials, l);
     shift_hashset(&mut a.finals, l);
     shift_transitions(&mut a.transitions, l);

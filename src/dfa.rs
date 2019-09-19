@@ -10,7 +10,7 @@ use std::str::FromStr;
 
 /// https://en.wikipedia.org/wiki/Deterministic_finite_automaton
 #[derive(Debug, Clone)]
-pub struct DFA<V: Eq + Hash + Display + Copy + Clone + Debug> {
+pub struct DFA<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> {
     pub(crate) alphabet: HashSet<V>,
     pub(crate) initial: usize,
     pub(crate) finals: HashSet<usize>,
@@ -18,11 +18,11 @@ pub struct DFA<V: Eq + Hash + Display + Copy + Clone + Debug> {
 }
 
 /// An interface for structs that can be converted into a DFA.
-pub trait ToDfa<V: Eq + Hash + Display + Copy + Clone + Debug> {
+pub trait ToDfa<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> {
     fn to_dfa(&self) -> DFA<V>;
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> DFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> DFA<V> {
     pub fn intersect(self, b: DFA<V>) -> DFA<V> {
         self.negate().unite(b.negate()).negate()
     }
@@ -52,7 +52,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> DFA<V> {
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> Automata<V> for DFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Automata<V> for DFA<V> {
     fn run(&self, v: &Vec<V>) -> bool {
         let mut actual = self.initial;
         for l in v {
@@ -151,7 +151,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Automata<V> for DFA<V> {
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> Buildable<V> for DFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Buildable<V> for DFA<V> {
     fn unite(self, b: DFA<V>) -> DFA<V> {
         self.to_nfa().unite(b.to_nfa()).to_dfa()
     }
@@ -177,19 +177,19 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Buildable<V> for DFA<V> {
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToDfa<V> for DFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> ToDfa<V> for DFA<V> {
     fn to_dfa(&self) -> DFA<V> {
         self.clone()
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToRegex<V> for DFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> ToRegex<V> for DFA<V> {
     fn to_regex(&self) -> Regex<V> {
         self.to_nfa().to_regex()
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToNfa<V> for DFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> ToNfa<V> for DFA<V> {
     fn to_nfa(&self) -> NFA<V> {
         let mut initials = HashSet::new();
         initials.insert(self.initial);
@@ -206,25 +206,25 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToNfa<V> for DFA<V> {
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<DFA<V>> for DFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> PartialEq<DFA<V>> for DFA<V> {
     fn eq(&self, b: &DFA<V>) -> bool {
         self.le(&b) && self.ge(&b)
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<NFA<V>> for DFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> PartialEq<NFA<V>> for DFA<V> {
     fn eq(&self, b: &NFA<V>) -> bool {
         self.to_nfa().eq(b)
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<Regex<V>> for DFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> PartialEq<Regex<V>> for DFA<V> {
     fn eq(&self, b: &Regex<V>) -> bool {
         self.to_nfa().eq(&b.to_nfa())
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<Automaton<V>> for DFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> PartialEq<Automaton<V>> for DFA<V> {
     fn eq(&self, b: &Automaton<V>) -> bool {
         match b {
             Automaton::DFA(v) => self.eq(&*v),
@@ -234,7 +234,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialEq<Automaton<V>> for 
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> PartialOrd for DFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> PartialOrd for DFA<V> {
     fn partial_cmp(&self, other: &DFA<V>) -> Option<Ordering> {
         match (self.ge(&other), self.le(&other)) {
             (true, true) => Some(Equal),
@@ -270,7 +270,7 @@ impl FromStr for DFA<char> {
 }
 
 /// The multiplication of A and B is A.concatenate(B)
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> Mul for DFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Mul for DFA<V> {
     type Output = Self;
 
     fn mul(self, other: DFA<V>) -> DFA<V> {
@@ -279,7 +279,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Mul for DFA<V> {
 }
 
 /// The negation of A is A.negate().
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> Neg for DFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Neg for DFA<V> {
     type Output = Self;
 
     fn neg(self) -> DFA<V> {
@@ -288,7 +288,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Neg for DFA<V> {
 }
 
 /// The opposite of A is A.reverse().
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> Not for DFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Not for DFA<V> {
     type Output = Self;
 
     fn not(self) -> DFA<V> {
@@ -297,7 +297,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Not for DFA<V> {
 }
 
 /// The substraction of A and B is an automaton that accepts a word if and only if A accepts it and B doesn't.
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> Sub for DFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Sub for DFA<V> {
     type Output = Self;
 
     fn sub(self, other: DFA<V>) -> DFA<V> {
@@ -306,7 +306,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> Sub for DFA<V> {
 }
 
 /// The addition fo A and B is an automaton that accepts a word if and only if A or B accept it.
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> Add for DFA<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Add for DFA<V> {
     type Output = Self;
 
     fn add(self, other: DFA<V>) -> DFA<V> {

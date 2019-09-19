@@ -543,4 +543,29 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_simplify() {
+        let list = [
+            "",
+            "𝜀",
+            "𝜀𝜀((𝜀))𝜀𝜀",
+            "0|1|0|(0|1)",
+            "(0|1|2|3|𝜀)?",
+            "10|11|12|13",
+            "1𝜀2𝜀3𝜀",
+            "(1|3|4|𝜀)*",
+        ];
+
+        for e in &list {
+            println!(
+                "{}  :  {}",
+                e,
+                Regex::parse_with_alphabet((b'0'..=b'9').map(char::from).collect(), e)
+                    .unwrap()
+                    .simplify()
+                    .to_string()
+            );
+        }
+    }
 }

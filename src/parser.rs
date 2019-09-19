@@ -1,7 +1,7 @@
 use crate::parser::Token::*;
 use crate::regex::Operations;
 use logos::Logos;
-use std::collections::VecDeque;
+use std::collections::{BTreeSet, VecDeque};
 
 /// The token used by [`logos`](/logos/index.html`]).
 #[derive(Logos, Debug, PartialEq, Clone)]
@@ -71,10 +71,10 @@ pub(crate) fn peak(tokens: &mut VecDeque<(Token, &str)>) -> Option<Token> {
 }
 
 pub(crate) fn read_union(tokens: &mut VecDeque<(Token, &str)>) -> Result<Operations<char>, String> {
-    let mut u = VecDeque::new();
+    let mut u = BTreeSet::new();
 
     loop {
-        u.push_back(read_concat(tokens)?);
+        u.insert(read_concat(tokens)?);
         if peak(tokens) == Some(Union) {
             tokens.pop_front();
         } else {
@@ -83,7 +83,8 @@ pub(crate) fn read_union(tokens: &mut VecDeque<(Token, &str)>) -> Result<Operati
     }
 
     if u.len() == 1 {
-        Ok(u.pop_front().unwrap())
+        let e = u.iter().next().unwrap().clone();
+        Ok(u.take(&e).unwrap())
     } else {
         Ok(Operations::Union(u))
     }
