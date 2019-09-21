@@ -1,5 +1,8 @@
 extern crate logos;
 
+#[macro_use]
+mod utils;
+
 pub mod automaton;
 pub mod dfa;
 pub mod generator;
@@ -7,7 +10,6 @@ pub mod nfa;
 pub mod regex;
 
 mod parser;
-mod utils;
 
 /// https://en.wikipedia.org/wiki/Regular_language
 /// https://en.wikipedia.org/wiki/Finite-state_machine
@@ -538,9 +540,7 @@ mod tests {
     #[test]
     fn test_to_regex() {
         for (i, (aut, _, _)) in automaton_list().into_iter().enumerate() {
-            if i == 1 {
-                println!("{} : {}", i, aut.to_regex().to_string());
-            }
+            println!("{} : {}", i, aut.to_regex().simplify().to_string());
         }
     }
 
@@ -555,6 +555,9 @@ mod tests {
             "10|11|12|13",
             "1𝜀2𝜀3𝜀",
             "(1|3|4|𝜀)*",
+            "1|𝜀",
+            "1*|𝜀",
+            "1+|𝜀",
         ];
 
         for e in &list {

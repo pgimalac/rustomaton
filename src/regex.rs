@@ -1,9 +1,9 @@
+use crate::utils::*;
 use crate::{
     automaton::{Automaton, Buildable},
     dfa::{ToDfa, DFA},
     nfa::{ToNfa, NFA},
     parser::*,
-    utils::append_hashset,
 };
 use std::cmp::{Ordering, Ordering::*};
 use std::collections::{BTreeSet, HashSet, VecDeque};
@@ -135,6 +135,20 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Operations<V> {
             return Epsilon;
         } else if set.len() == 1 {
             return set.into_iter().next().unwrap();
+        } else if set.contains(&Epsilon) && set.len() == 2 {
+            return Repeat(
+                Box::new(set.into_iter().filter(|x| x != &Epsilon).next().unwrap()),
+                0,
+                Some(1),
+            )
+            .simplify(alphabet);
+        }
+
+        if set.iter().any(|x| match x {
+            Repeat(_, 0, _) => true,
+            _ => false,
+        }) {
+            set.remove(&Epsilon);
         }
 
         let facto = match set.iter().next().unwrap() {
@@ -210,8 +224,14 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Operations<V> {
             (0, None, Repeat(o, _min @ 0..=1, _)) => Repeat(o, 0, None).simplify(alphabet),
             (0, Some(1), Repeat(o, 0, Some(1))) => Repeat(o, 0, Some(1)).simplify(alphabet),
             (0, Some(1), Union(mut u)) => {
-                u.insert(Epsilon);
-                Union(u)
+                u.remove(&Epsilon);
+                if u.iter().all(|x| match x {
+                    Repeat(_, 0, _) => false,
+                    _ => true,
+                }) {
+                    u.insert(Epsilon);
+                }
+                Union(u).simplify(alphabet)
             }
             (0, max, Union(mut u)) => {
                 u.remove(&Epsilon);
@@ -279,16 +299,33 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Operations<V> {
 
         return alphabet;
     }
-}
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToString for Operations<V> {
-    fn to_string(&self) -> String {
+    fn to_string(&self, alphabet: &HashSet<V>) -> String {
         match self {
             Union(v) => {
+                if v.contains(&Epsilon)
+                    && v.len() == alphabet.len() + 1
+                    && contains_dot(&v, alphabet)
+                {
+                    return ".?".to_string();
+                }
+
                 let mut acc = String::new();
-                for x in v {
-                    acc.push_str(x.to_string().as_str());
+                if alphabet.iter().all(|x| v.contains(&Letter(*x))) {
+                    acc.push('.');
                     acc.push('|');
+                    for x in v.iter().filter(|x| match x {
+                        Letter(_) => false,
+                        _ => true,
+                    }) {
+                        acc.push_str(x.to_string(alphabet).as_str());
+                        acc.push('|');
+                    }
+                } else {
+                    for x in v {
+                        acc.push_str(x.to_string(alphabet).as_str());
+                        acc.push('|');
+                    }
                 }
                 acc.pop();
                 acc
@@ -299,36 +336,36 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToString for Operations<V> {
                     match e {
                         Union(_) => {
                             acc.push('(');
-                            acc.push_str(e.to_string().as_str());
+                            acc.push_str(e.to_string(alphabet).as_str());
                             acc.push(')');
                         }
-                        _ => acc.push_str(e.to_string().as_str()),
+                        _ => acc.push_str(e.to_string(alphabet).as_str()),
                     }
                 }
                 acc
             }
-            Repeat(a, 0, None) => format!("({})*", a.to_string()),
-            Repeat(a, 1, None) => format!("({})+", a.to_string()),
-            Repeat(a, 0, Some(1)) => format!("({})?", a.to_string()),
+            Repeat(a, 0, None) => format!("{}*", paren!(a.to_string(alphabet))),
+            Repeat(a, 1, None) => format!("{}+", paren!(a.to_string(alphabet))),
+            Repeat(a, 0, Some(1)) => format!("{}?", paren!(a.to_string(alphabet))),
             Repeat(a, 0, max) => {
                 if let Some(max) = max {
-                    format!("({}){{,{}}}", a.to_string(), max)
+                    format!("{}{{,{}}}", paren!(a.to_string(alphabet)), max)
                 } else {
-                    format!("({})*", a.to_string())
+                    format!("{}*", paren!(a.to_string(alphabet)))
                 }
             }
             Repeat(a, min, max) => {
                 if let Some(max) = max {
                     if min == max {
-                        format!("({}){{{}}}", a.to_string(), min)
+                        format!("{}{{{}}}", paren!(a.to_string(alphabet)), min)
                     } else {
-                        format!("({}){{{},{}}}", a.to_string(), min, max)
+                        format!("{}{{{},{}}}", paren!(a.to_string(alphabet)), min, max)
                     }
                 } else {
-                    format!("({}){{{},}}", a.to_string(), min)
+                    format!("{}{{{},}}", paren!(a.to_string(alphabet)), min)
                 }
             }
-            Letter(a) => format!("{}", a),
+            Letter(a) => a.to_string(),
             Epsilon => format!("𝜀"),
             Empty => format!("∅"),
             Dot => format!("."),
@@ -437,9 +474,9 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> PartialOrd for Regex<V
     }
 }
 
-impl<V: Eq + Hash + Display + Copy + Clone + Debug> ToString for Regex<V> {
+impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> ToString for Regex<V> {
     fn to_string(&self) -> String {
-        self.regex.to_string()
+        self.regex.to_string(&self.alphabet)
     }
 }
 

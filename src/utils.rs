@@ -1,11 +1,8 @@
 /* AUXILIARY FUNCTIONS */
 
 use crate::nfa::NFA;
-//use std::iter::repeat;
-// use std::ops::{Add, AddAssign, Mul};
-//use ndarray::arr2;
-//use ndarray::ArrayBase;
-use std::collections::{HashMap, HashSet};
+use crate::regex::{Operations, Operations::Letter};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
@@ -45,52 +42,19 @@ pub fn append_shift_transitions<V: Eq + Hash>(
     a.append(&mut b);
 }
 
-// pub fn mul<V: Clone + AddAssign + Mul<Output = V>>(
-//     arr1: &Vec<Vec<V>>,
-//     arr2: &Vec<Vec<V>>,
-// ) -> Vec<Vec<V>> {
-//     let a = arr1.len();
-//     let b = arr2.len();
-//     let c = arr2[0].len();
-//     let mut res: Vec<Vec<V>> = repeat(Vec::with_capacity(a)).take(c).collect();
+pub(crate) fn contains_dot<V: Eq + Hash + Display + Copy + Clone + Debug + Ord>(
+    set: &BTreeSet<Operations<V>>,
+    alphabet: &HashSet<V>,
+) -> bool {
+    alphabet.iter().all(|x| set.contains(&Letter(*x)))
+}
 
-//     for i in 0..a {
-//         for j in 0..c {
-//             res[i].push(arr1[i][j].clone() * arr2[0][j].clone());
-//             for k in 1..b {
-//                 res[i][j] += arr1[i][j].clone() * arr2[k][j].clone();
-//             }
-//         }
-//     }
-
-//     res
-// }
-
-// pub fn add<V: Clone + Add<Output = V>>(arr1: &Vec<Vec<V>>, arr2: &Vec<Vec<V>>) -> Vec<Vec<V>> {
-//     let a = arr1.len();
-//     let b = arr2[0].len();
-//     let mut res: Vec<Vec<V>> = repeat(Vec::with_capacity(a)).take(b).collect();
-
-//     for i in 0..a {
-//         for j in 0..b {
-//             res[i].push(arr1[i][j].clone() + arr2[0][j].clone());
-//         }
-//     }
-
-//     res
-// }
-
-// pub fn pow<V: Clone + Mul<Output = V> + AddAssign>(arr: &Vec<Vec<V>>, n: usize) -> Vec<Vec<V>> {
-//     assert!(n != 0);
-//     if n == 1 {
-//         return arr.clone();
-//     }
-
-//     let sq = pow(arr, n / 2);
-//     let sq = mul(&sq, &sq);
-//     if n % 2 == 1 {
-//         return mul(&arr, &sq);
-//     } else {
-//         return sq;
-//     }
-// }
+macro_rules! paren {
+    ($x: expr) => {
+        if $x.len() == 1 {
+            $x
+        } else {
+            format!("({})", $x)
+        }
+    };
+}
