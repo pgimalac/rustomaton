@@ -137,7 +137,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Operations<V> {
             return set.into_iter().next().unwrap();
         } else if set.contains(&Epsilon) && set.len() == 2 {
             return Repeat(
-                Box::new(set.into_iter().filter(|x| x != &Epsilon).next().unwrap()),
+                Box::new(set.into_iter().find(|x| x != &Epsilon).unwrap()),
                 0,
                 Some(1),
             )
@@ -173,7 +173,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Operations<V> {
                     }
                 }
             }
-            Concat(vec![facto.clone(), Union(new_set)].into_iter().collect()).simplify(alphabet)
+            Concat(vec![facto, Union(new_set)].into_iter().collect()).simplify(alphabet)
         } else {
             Union(set)
         }
@@ -274,7 +274,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Operations<V> {
                     a.to_nfa(alphabet).repeat((*min)..)
                 }
             }
-            Letter(a) => NFA::new_matching(alphabet.clone(), &vec![*a]),
+            Letter(a) => NFA::new_matching(alphabet.clone(), &[*a]),
             Epsilon => NFA::new_length(alphabet.clone(), 0),
             Empty => NFA::new_empty(alphabet.clone()),
             Dot => NFA::new_length(alphabet.clone(), 1),
@@ -297,7 +297,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Operations<V> {
             }
         }
 
-        return alphabet;
+        alphabet
     }
 
     fn to_string(&self, alphabet: &HashSet<V>) -> String {
@@ -366,9 +366,9 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Operations<V> {
                 }
             }
             Letter(a) => a.to_string(),
-            Epsilon => format!("𝜀"),
-            Empty => format!("∅"),
-            Dot => format!("."),
+            Epsilon => "𝜀".to_string(),
+            Empty => "∅".to_string(),
+            Dot => ".".to_string(),
         }
     }
 }
@@ -376,7 +376,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Operations<V> {
 impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Buildable<V> for Regex<V> {
     fn unite(mut self, b: Regex<V>) -> Regex<V> {
         append_hashset(&mut self.alphabet, b.alphabet);
-        self.regex = self.regex + b.regex;
+        self.regex += b.regex;
         self
     }
 

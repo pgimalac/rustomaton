@@ -1,3 +1,4 @@
+use crate::automaton::FromRawError;
 use crate::automaton::{Automata, Automaton, Buildable};
 use crate::nfa::{ToNfa, NFA};
 use crate::regex::{Regex, ToRegex};
@@ -42,6 +43,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> DFA<V> {
         self.to_nfa().write_dot(n)
     }
 
+    /// Returns an empty automaton with the given alphabet.
     pub fn new_empty(alphabet: &HashSet<V>) -> DFA<V> {
         DFA {
             alphabet: alphabet.clone(),
@@ -50,10 +52,25 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> DFA<V> {
             transitions: vec![HashMap::new()],
         }
     }
+
+    /// Returns a DFA built from the raw arguments
+    pub fn from_raw(
+        alphabet: HashSet<V>,
+        initial: usize,
+        finals: HashSet<usize>,
+        transitions: Vec<HashMap<V, usize>>,
+    ) -> Result<Self, FromRawError<V>> {
+        Ok(DFA {
+            alphabet,
+            initial,
+            finals,
+            transitions,
+        })
+    }
 }
 
 impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Automata<V> for DFA<V> {
-    fn run(&self, v: &Vec<V>) -> bool {
+    fn run(&self, v: &[V]) -> bool {
         let mut actual = self.initial;
         for l in v {
             if let Some(t) = self.transitions[actual].get(l) {
@@ -62,7 +79,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Automata<V> for DFA<V>
                 return false;
             }
         }
-        return self.finals.contains(&actual);
+        self.finals.contains(&actual)
     }
 
     fn is_complete(&self) -> bool {
@@ -73,7 +90,8 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Automata<V> for DFA<V>
                 }
             }
         }
-        return true;
+
+        true
     }
 
     fn is_reachable(&self) -> bool {
@@ -81,14 +99,14 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Automata<V> for DFA<V>
         let mut acc = HashSet::new();
         acc.insert(self.initial);
         while let Some(e) = stack.pop() {
-            for (_, v) in &self.transitions[e] {
+            for v in self.transitions[e].values() {
                 if !acc.contains(&v) {
                     acc.insert(*v);
                     stack.push(*v);
                 }
             }
         }
-        return acc.len() == self.transitions.len();
+        acc.len() == self.transitions.len()
     }
 
     fn is_coreachable(&self) -> bool {
@@ -110,7 +128,6 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Automata<V> for DFA<V>
     fn negate(mut self) -> DFA<V> {
         self = self.complete();
         self.finals = (0..self.transitions.len())
-            .into_iter()
             .filter(|x| !self.finals.contains(&x))
             .collect();
         self

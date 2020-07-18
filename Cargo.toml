@@ -3,7 +3,17 @@ name = "rustomaton"
 version = "0.1.0"
 authors = ["Pierre Gimalac <pierre.gimalac@gmail.com>"]
 edition = "2018"
+description = "A small Rust library for automaton (DFA, NFA, Regex) manipulation."
+readme = "README.md"
+homepage = "https://github.com/pgimalac/rustomaton"
+repository = "https://github.com/pgimalac/rustomaton"
+license-file = "LICENSE"
+keywords = ["automaton", "dfa", "nfa", "regex"]
+categories = ["algorithms"]
+exclude = ["generator.rs"]
 
 [dependencies]
 logos = "0.9.7"
-rand = ""
+
+[dev-dependencies]
+rand = "0.7.3"

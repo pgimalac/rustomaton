@@ -33,17 +33,17 @@ pub enum Automaton<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> {
 ///
 
 pub trait Buildable<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> {
-    /// Returns the automata that accepts a word if and only if it is accepted by `self` or by `other`.
+    /// Returns the automaton that accepts a word if and only if it is accepted by `self` or by `other`.
     fn unite(self, other: Self) -> Self;
-    /// Returns the automata that accepts a word if and only if it is the concatenation of a word accepted by `self` and of a word accepted by `other`.
+    /// Returns the automaton that accepts a word if and only if it is the concatenation of a word accepted by `self` and of a word accepted by `other`.
     fn concatenate(self, other: Self) -> Self;
-    /// Returns the automata that accepts a word if and only if it is the concatenation of a finite number of words accepted by `self` (possibly 0).
+    /// Returns the automaton that accepts a word if and only if it is the concatenation of a finite number of words accepted by `self` (possibly 0).
     fn kleene(self) -> Self;
-    /// Returns the automata that accepts a word if and only if it is the concatenation of at most `num` words accepted by `self`.
+    /// Returns the automaton that accepts a word if and only if it is the concatenation of at most `num` words accepted by `self`.
     fn at_most(self, num: usize) -> Self;
-    /// Returns the automata that accepts a word if and only if it is the concatenation of at least `num` words accepted by `self`.
+    /// Returns the automaton that accepts a word if and only if it is the concatenation of at least `num` words accepted by `self`.
     fn at_least(self, num: usize) -> Self;
-    /// Returns the automata that accepts a word if and only if it is the concatenation of a number in the range `r` of words accepted by `self`.
+    /// Returns the automaton that accepts a word if and only if it is the concatenation of a number in the range `r` of words accepted by `self`.
     fn repeat<R: RangeBounds<usize>>(self, r: R) -> Self;
 }
 
@@ -74,7 +74,7 @@ pub trait Buildable<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> {
 
 pub trait Automata<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> {
     /// Returns `true` if and only if `word` is accepted by `self`.
-    fn run(&self, word: &Vec<V>) -> bool;
+    fn run(&self, word: &[V]) -> bool;
 
     /// Returns `true` if and only if `self` is [`complete`](./trait.Automata.html#complete-automaton).
     fn is_complete(&self) -> bool;
@@ -101,6 +101,14 @@ pub trait Automata<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> {
     fn negate(self) -> Self;
     /// Returns an automaton that accepts a word if and only if `self` accepts the reversed word.
     fn reverse(self) -> Self;
+}
+
+#[derive(Debug)]
+pub enum FromRawError<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> {
+    UnknownLetter(V),
+    InvalidInitial(usize),
+    InvalidFinal(usize),
+    InvalidTransition(V, usize),
 }
 
 impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Automaton<V> {

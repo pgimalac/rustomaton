@@ -20,7 +20,6 @@ A Rust automaton project
 - [x] trimmed automaton
 - [x] reversed automaton
 
-- [ ] all functions above but for fda
 - [ ] improve algorithms (for example coreachable, maybe eq, ...)
 - [x] tests
 - [ ] more tests

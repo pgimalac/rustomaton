@@ -122,7 +122,7 @@ pub(crate) fn read_quantif(
         tokens.pop_front();
     }
 
-    return o;
+    o
 }
 
 pub(crate) fn read_letter(

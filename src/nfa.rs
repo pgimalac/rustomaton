@@ -1,3 +1,4 @@
+use crate::automaton::FromRawError;
 use crate::automaton::{Automata, Automaton, Buildable};
 use crate::dfa::{ToDfa, DFA};
 use crate::regex::{Operations, Regex, ToRegex};
@@ -71,16 +72,18 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> NFA<V> {
                 }
 
                 let other = it.iter().fold(zero, |acc, x| acc | shift(*x));
-                if !map.contains_key(&other) {
+                let entry = map.entry(other);
+                let val = entry.or_insert_with(|| {
                     let l = dfa.transitions.len();
-                    map.insert(other, l);
                     if it.iter().any(|x| self.finals.contains(x)) {
                         dfa.finals.insert(l);
                     }
                     stack.push_back((other, it));
                     dfa.transitions.push(HashMap::new());
-                }
-                dfa.transitions[elem_num].insert(*v, *map.get(&other).unwrap());
+                    l
+                });
+
+                dfa.transitions[elem_num].insert(*v, *val);
             }
         }
 
@@ -93,7 +96,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> NFA<V> {
 
         let mut dfa = DFA::new_empty(&self.alphabet);
 
-        let initial: BTreeSet<usize> = self.initials.iter().map(|x| *x).collect();
+        let initial: BTreeSet<usize> = self.initials.iter().copied().collect();
         map.insert(initial.clone(), 0);
         stack.push_back(initial);
 
@@ -148,33 +151,33 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> NFA<V> {
         let name = Path::new(&name);
 
         let mut file = File::create(&name)?;
-        file.write(b"digraph {\n")?;
+        writeln!(file, "digraph {{")?;
 
         if !self.finals.is_empty() {
-            file.write(b"    node [shape = doublecircle];")?;
+            write!(file, "    node [shape = doublecircle];")?;
             for e in &self.finals {
                 write!(file, " S_{}", e)?;
             }
-            file.write(b";\n")?;
+            writeln!(file, ";")?;
         }
 
         if !self.initials.is_empty() {
-            file.write(b"    node [shape = point];")?;
+            write!(file, "    node [shape = point];")?;
             for e in &self.initials {
                 write!(file, " I_{}", e)?;
             }
-            file.write(b";\n")?;
+            writeln!(file, ";")?;
         }
 
-        file.write(b"    node [shape = circle];\n")?;
+        writeln!(file, "    node [shape = circle];")?;
         let mut tmp_map = HashMap::new();
         for (i, map) in self.transitions.iter().enumerate() {
             if map.is_empty() {
-                write!(file, "    S_{};\n", i)?;
+                writeln!(file, "    S_{};", i)?;
             }
             for (k, v) in map {
                 for e in v {
-                    tmp_map.entry(e).or_insert(Vec::new()).push(k);
+                    tmp_map.entry(e).or_insert_with(Vec::new).push(k);
                 }
             }
             for (e, v) in tmp_map.drain() {
@@ -185,15 +188,15 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> NFA<V> {
                 });
                 vs.pop();
                 vs.pop();
-                write!(file, "    S_{} -> S_{} [label = \"{}\"];\n", i, e, vs)?;
+                writeln!(file, "    S_{} -> S_{} [label = \"{}\"];", i, e, vs)?;
             }
         }
 
         for e in &self.initials {
-            write!(file, "    I_{} -> S_{};\n", e, e)?;
+            writeln!(file, "    I_{} -> S_{};", e, e)?;
         }
 
-        file.write(b"}")?;
+        write!(file, "}}")?;
 
         Ok(())
     }
@@ -238,7 +241,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> NFA<V> {
     }
 
     /// Returns a NFA that accepts only the given word.
-    pub fn new_matching(alphabet: HashSet<V>, word: &Vec<V>) -> NFA<V> {
+    pub fn new_matching(alphabet: HashSet<V>, word: &[V]) -> NFA<V> {
         let l = word.len();
         let mut nfa = NFA {
             alphabet,
@@ -247,7 +250,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> NFA<V> {
             transitions: repeat(HashMap::new()).take(l + 1).collect(),
         };
 
-        for (i, l) in word.into_iter().enumerate() {
+        for (i, l) in word.iter().enumerate() {
             nfa.transitions[i].insert(*l, vec![i + 1]);
         }
 
@@ -262,6 +265,21 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> NFA<V> {
             finals: (0..=0).collect(),
             transitions: vec![HashMap::new()],
         }
+    }
+
+    /// Returns an automaton built from the raw arguments.
+    pub fn from_raw(
+        alphabet: HashSet<V>,
+        initials: HashSet<usize>,
+        finals: HashSet<usize>,
+        transitions: Vec<HashMap<V, Vec<usize>>>,
+    ) -> Result<Self, FromRawError<V>> {
+        Ok(NFA {
+            alphabet,
+            initials,
+            finals,
+            transitions,
+        })
     }
 }
 
@@ -330,15 +348,15 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> ToRegex<V> for NFA<V> 
             }
         }
 
-        return Regex {
+        Regex {
             alphabet: self.alphabet.clone(),
             regex: res,
-        };
+        }
     }
 }
 
 impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Automata<V> for NFA<V> {
-    fn run(&self, v: &Vec<V>) -> bool {
+    fn run(&self, v: &[V]) -> bool {
         if self.initials.is_empty() {
             return false;
         }
@@ -362,7 +380,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Automata<V> for NFA<V>
             next.clear();
         }
 
-        return actuals.iter().any(|x| self.finals.contains(x));
+        actuals.iter().any(|x| self.finals.contains(x))
     }
 
     fn is_complete(&self) -> bool {
@@ -380,14 +398,14 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Automata<V> for NFA<V>
                 }
             }
         }
-        return true;
+        true
     }
 
     fn is_reachable(&self) -> bool {
         let mut acc: HashSet<usize> = self.initials.clone().into_iter().collect();
         let mut stack: Vec<usize> = self.initials.iter().cloned().collect();
         while let Some(e) = stack.pop() {
-            for (_, v) in &self.transitions[e] {
+            for v in self.transitions[e].values() {
                 for t in v {
                     if !acc.contains(t) {
                         acc.insert(*t);
@@ -416,7 +434,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Automata<V> for NFA<V>
         let mut stack: Vec<usize> = self.initials.clone().into_iter().collect();
 
         while let Some(e) = stack.pop() {
-            for (_, v) in &self.transitions[e] {
+            for v in self.transitions[e].values() {
                 for t in v {
                     if self.finals.contains(t) {
                         return false;
@@ -428,7 +446,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Automata<V> for NFA<V>
                 }
             }
         }
-        return true;
+        true
     }
 
     fn is_full(&self) -> bool {
@@ -440,7 +458,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Automata<V> for NFA<V>
         let mut stack: Vec<usize> = self.initials.clone().into_iter().collect();
 
         while let Some(e) = stack.pop() {
-            for (_, v) in &self.transitions[e] {
+            for v in self.transitions[e].values() {
                 for t in v {
                     if !self.finals.contains(t) {
                         return false;
@@ -452,7 +470,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Automata<V> for NFA<V>
                 }
             }
         }
-        return true;
+        true
     }
 
     fn negate(self) -> NFA<V> {
@@ -468,7 +486,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Automata<V> for NFA<V>
         self.transitions.push(HashMap::new());
         for m in &mut self.transitions {
             for v in &self.alphabet {
-                let t = m.entry(*v).or_insert(Vec::new());
+                let t = m.entry(*v).or_insert_with(Vec::new);
                 if t.is_empty() {
                     t.push(l);
                 }
@@ -486,7 +504,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Automata<V> for NFA<V>
         let mut acc: HashSet<usize> = self.initials.clone().into_iter().collect();
         let mut stack: Vec<usize> = self.initials.iter().cloned().collect();
         while let Some(e) = stack.pop() {
-            for (_, v) in &self.transitions[e] {
+            for v in self.transitions[e].values() {
                 for t in v {
                     if !acc.contains(t) {
                         acc.insert(*t);
@@ -543,14 +561,14 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Automata<V> for NFA<V>
         for i in 0..self.transitions.len() {
             for (k, v) in &self.transitions[i] {
                 for e in v {
-                    transitions[*e].entry(*k).or_insert(Vec::new()).push(i);
+                    transitions[*e].entry(*k).or_insert_with(Vec::new).push(i);
                 }
             }
         }
 
         self.transitions = transitions;
         std::mem::swap(&mut self.initials, &mut self.finals);
-        return self;
+        self
     }
 }
 
@@ -591,7 +609,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Buildable<V> for NFA<V
                 for f in &self.finals {
                     self.transitions[*f]
                         .entry(*v)
-                        .or_insert(Vec::new())
+                        .or_insert_with(Vec::new)
                         .append(&mut t.clone());
                 }
             }
@@ -613,7 +631,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Buildable<V> for NFA<V
 
         for i in &self.initials {
             for (k, v) in &self.transitions[*i] {
-                let set = &mut map.entry(*k).or_insert(HashSet::new());
+                let set = &mut map.entry(*k).or_insert_with(HashSet::new);
                 for x in v {
                     set.insert(*x);
                 }
@@ -624,7 +642,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Buildable<V> for NFA<V
             for (k, v) in &map {
                 let mut set: HashSet<usize> = self.transitions[*i]
                     .entry(*k)
-                    .or_insert(Vec::new())
+                    .or_insert_with(Vec::new)
                     .drain(..)
                     .collect();
                 for x in v {

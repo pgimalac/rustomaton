@@ -19,28 +19,16 @@ pub fn new_generator(alphabet: HashSet<char>, max_depth: u8) -> Generator {
 }
 
 impl Generator {
-    pub fn with_max_depth(mut self, max_depth: u8) -> Self {
-        self.max_depth = max_depth;
-        self
-    }
-
-    pub fn random(alphabet: &HashSet<char>) -> String {
-        Self::random_with_rng(
-            &alphabet.iter().map(|x| *x).collect(),
-            &mut rand::thread_rng(),
-        )
-    }
-
-    fn random_with_rng(alphabet: &Vec<char>, rng: &mut ThreadRng) -> String {
+    fn random_with_rng(alphabet: &[char], rng: &mut ThreadRng) -> String {
         let alphalen = alphabet.len();
         let n = rng.gen_range(0, alphalen + 2);
-        return if n == alphalen {
-            ".".to_string()
-        } else if n < alphalen {
-            alphabet[n].to_string()
-        } else {
-            "𝜀".to_string()
-        };
+
+        // seems a bit ugly to me but it pleases clippy
+        match n {
+            n if n == alphalen => ".".to_string(),
+            n if n < alphalen => alphabet[n].to_string(),
+            _ => "𝜀".to_string(),
+        }
     }
 
     pub fn letter(&mut self) -> String {
@@ -79,6 +67,6 @@ impl Generator {
         };
         self.actual_depth -= 1;
 
-        return ret;
+        ret
     }
 }

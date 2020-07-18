@@ -28,7 +28,7 @@ pub fn shift_fnda<V: Eq + Hash + Display + Copy + Clone + Debug + Ord>(a: &mut N
 
 pub fn shift_transitions<V: Eq + Hash>(a: &mut Vec<HashMap<V, Vec<usize>>>, l: usize) {
     for map in a {
-        for (_, v) in map {
+        for v in map.values_mut() {
             v.iter_mut().for_each(|t| *t += l);
         }
     }
