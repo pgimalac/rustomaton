@@ -1,4 +1,5 @@
 use rand::prelude::*;
+use std::cmp::Ordering::{Equal, Greater, Less};
 use std::collections::HashSet;
 
 #[derive(Debug)]
@@ -23,11 +24,10 @@ impl Generator {
         let alphalen = alphabet.len();
         let n = rng.gen_range(0, alphalen + 2);
 
-        // seems a bit ugly to me but it pleases clippy
-        match n {
-            n if n == alphalen => ".".to_string(),
-            n if n < alphalen => alphabet[n].to_string(),
-            _ => "𝜀".to_string(),
+        match n.cmp(&alphalen) {
+            Equal => ".".to_string(),
+            Less => alphabet[n].to_string(),
+            Greater => "𝜀".to_string(),
         }
     }
 

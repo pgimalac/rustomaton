@@ -108,7 +108,7 @@ pub enum FromRawError<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> {
     UnknownLetter(V),
     InvalidInitial(usize),
     InvalidFinal(usize),
-    InvalidTransition(V, usize),
+    InvalidTransition(usize, V, usize),
 }
 
 impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> Automaton<V> {

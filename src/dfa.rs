@@ -53,13 +53,35 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> DFA<V> {
         }
     }
 
-    /// Returns a DFA built from the raw arguments
+    /// Returns an automaton built from the raw arguments.
     pub fn from_raw(
         alphabet: HashSet<V>,
         initial: usize,
         finals: HashSet<usize>,
         transitions: Vec<HashMap<V, usize>>,
     ) -> Result<Self, FromRawError<V>> {
+        let len = transitions.len();
+
+        if initial >= len {
+            return Err(FromRawError::InvalidInitial(initial));
+        }
+
+        if let Some(state) = finals.iter().find(|&&state| state >= len) {
+            return Err(FromRawError::InvalidFinal(*state));
+        }
+
+        for (state, map) in transitions.iter().enumerate() {
+            if let Some(&letter) = map.keys().find(|&x| !alphabet.contains(x)) {
+                return Err(FromRawError::UnknownLetter(letter));
+            }
+
+            if let Some((&letter, &destination)) =
+                map.iter().find(|(_, &destination)| destination >= len)
+            {
+                return Err(FromRawError::InvalidTransition(state, letter, destination));
+            }
+        }
+
         Ok(DFA {
             alphabet,
             initial,

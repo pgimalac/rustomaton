@@ -274,6 +274,28 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> NFA<V> {
         finals: HashSet<usize>,
         transitions: Vec<HashMap<V, Vec<usize>>>,
     ) -> Result<Self, FromRawError<V>> {
+        let len = transitions.len();
+
+        if let Some(state) = initials.iter().find(|&&state| state >= len) {
+            return Err(FromRawError::InvalidInitial(*state));
+        }
+
+        if let Some(state) = finals.iter().find(|&&state| state >= len) {
+            return Err(FromRawError::InvalidFinal(*state));
+        }
+
+        for (state, map) in transitions.iter().enumerate() {
+            if let Some(&letter) = map.keys().find(|&x| !alphabet.contains(x)) {
+                return Err(FromRawError::UnknownLetter(letter));
+            }
+
+            for (&letter, destinations) in map {
+                if let Some(&destination) = destinations.iter().find(|&&x| x >= len) {
+                    return Err(FromRawError::InvalidTransition(state, letter, destination));
+                }
+            }
+        }
+
         Ok(NFA {
             alphabet,
             initials,
