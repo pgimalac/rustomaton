@@ -10,7 +10,7 @@ repository = "https://github.com/pgimalac/rustomaton"
 license-file = "LICENSE"
 keywords = ["automaton", "dfa", "nfa", "regex"]
 categories = ["algorithms"]
-exclude = ["generator.rs"]
+exclude = ["tests"]
 
 [dependencies]
 logos = "0.9.7"
