@@ -9,7 +9,7 @@ use std::hash::Hash;
 use std::ops::{Add, Mul, Neg, Not, RangeBounds, Sub};
 use std::str::FromStr;
 
-/// https://en.wikipedia.org/wiki/Deterministic_finite_automaton
+/// <https://en.wikipedia.org/wiki/Deterministic_finite_automaton>
 #[derive(Debug, Clone)]
 pub struct DFA<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> {
     pub(crate) alphabet: HashSet<V>,
@@ -28,7 +28,7 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> DFA<V> {
         self.negate().unite(b.negate()).negate()
     }
 
-    /// The algorithm used is https://en.wikipedia.org/wiki/DFA_minimization#Brzozowski's_algorithm.
+    /// The algorithm used is <https://en.wikipedia.org/wiki/DFA_minimization#Brzozowski's_algorithm>.
     pub fn minimize(self) -> DFA<V> {
         self.reverse().to_dfa().reverse().to_dfa()
     }

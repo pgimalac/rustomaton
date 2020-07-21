@@ -11,7 +11,7 @@ use std::iter::{repeat, FromIterator};
 use std::ops::{Add, BitOr, Bound::*, Mul, Neg, Not, RangeBounds, Sub};
 use std::str::FromStr;
 
-/// https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton
+/// <https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton>
 #[derive(Debug, Clone)]
 pub struct NFA<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> {
     pub(crate) alphabet: HashSet<V>,

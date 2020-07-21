@@ -12,9 +12,9 @@ use std::ops::RangeBounds;
 ///
 /// Automaton<V> regroups [`NFA<V>`], [`DFA<V>`] and [`Regex<V>`] where `V` is the type of the [`alphabet`].
 ///
-/// [`NFA<V>`]: dfa/struct.NFA.html
-/// [`DFA<V>`]: dfa/struct.DFA.html
-/// [`Regex<V>`]: dfa/struct.Regex.html
+/// [`NFA<V>`]: ../nfa/struct.NFA.html
+/// [`DFA<V>`]: ../dfa/struct.DFA.html
+/// [`Regex<V>`]: ../regex/struct.Regex.html
 /// [`alphabet`]: https://en.wikipedia.org/wiki/Alphabet_(formal_languages)
 ///
 

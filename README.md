@@ -1,6 +1,6 @@
 # A Rust automaton manipulation library project.
 
-## Fonctionnalities
+## Functionalities
 The library allows to build automatons (DFA and NFA) and regexes.
 
 It also provides lots of classic algorithms over theses structures and allows to convert from one to another.
@@ -26,8 +26,6 @@ Regexes can be displayed as Strings but the "simplify" function is not incredibl
 Automatons can be exported to [.dot files](https://en.wikipedia.org/wiki/DOT_(graph_description_language)).
 
 ## Bugs
-This library hasn't been tested intensively so I wouldn't recommand using it for something too serious.
+This library hasn't been tested intensively so I wouldn't recommend using it for something too serious.
 
-If you notice a bug or anything weird don't hesitate to open an issue or a pull request on [the github page](https://github.com/pgimalac/rustomaton).
-
-Lots of links in the doc are broken as I didn't spent much time debugging it.
+If you notice a bug or anything weird don't hesitate to open an issue or a pull request on [the Github page](https://github.com/pgimalac/rustomaton).

@@ -1,7 +1,7 @@
 extern crate logos;
 
-/// https://en.wikipedia.org/wiki/Regular_language
-/// https://en.wikipedia.org/wiki/Finite-state_machine
+/// <https://en.wikipedia.org/wiki/Regular_language>
+/// <https://en.wikipedia.org/wiki/Finite-state_machine>
 
 #[macro_use]
 mod utils;
