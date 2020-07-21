@@ -38,9 +38,9 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> DFA<V> {
         self.to_nfa().contains(&b.to_nfa())
     }
 
-    /// Export to dotfile in dots/automaton/i.dot
-    pub fn write_dot(&self, n: u8) -> Result<(), std::io::Error> {
-        self.to_nfa().write_dot(n)
+    /// Returns a string containing the dot description of the automaton
+    pub fn to_dot(&self) -> String {
+        self.to_nfa().to_dot()
     }
 
     /// Returns an empty automaton with the given alphabet.

@@ -139,41 +139,32 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> NFA<V> {
         dfa
     }
 
-    /// Export to dotfile in dots/automaton/i.dot
-    pub fn write_dot(&self, i: u8) -> Result<(), std::io::Error> {
-        use std::fs::File;
-        use std::io::Write;
-        use std::path::Path;
-
-        let mut name = "dots/automaton".to_string();
-        name.push_str(&i.to_string());
-        name.push_str(".dot");
-        let name = Path::new(&name);
-
-        let mut file = File::create(&name)?;
-        writeln!(file, "digraph {{")?;
+    /// Returns a string containing the dot description of the automaton
+    pub fn to_dot(&self) -> String {
+        let mut ret = String::new();
+        ret.push_str("digraph {");
 
         if !self.finals.is_empty() {
-            write!(file, "    node [shape = doublecircle];")?;
+            ret.push_str("    node [shape = doublecircle];");
             for e in &self.finals {
-                write!(file, " S_{}", e)?;
+                ret.push_str(&format!(" S_{}", e));
             }
-            writeln!(file, ";")?;
+            ret.push_str(";");
         }
 
         if !self.initials.is_empty() {
-            write!(file, "    node [shape = point];")?;
+            ret.push_str("    node [shape = point];");
             for e in &self.initials {
-                write!(file, " I_{}", e)?;
+                ret.push_str(&format!(" I_{}", e));
             }
-            writeln!(file, ";")?;
+            ret.push_str(";");
         }
 
-        writeln!(file, "    node [shape = circle];")?;
+        ret.push_str("    node [shape = circle];");
         let mut tmp_map = HashMap::new();
         for (i, map) in self.transitions.iter().enumerate() {
             if map.is_empty() {
-                writeln!(file, "    S_{};", i)?;
+                ret.push_str(&format!("    S_{};", i));
             }
             for (k, v) in map {
                 for e in v {
@@ -188,17 +179,17 @@ impl<V: Eq + Hash + Display + Copy + Clone + Debug + Ord> NFA<V> {
                 });
                 vs.pop();
                 vs.pop();
-                writeln!(file, "    S_{} -> S_{} [label = \"{}\"];", i, e, vs)?;
+                ret.push_str(&format!("    S_{} -> S_{} [label = \"{}\"];", i, e, vs));
             }
         }
 
         for e in &self.initials {
-            writeln!(file, "    I_{} -> S_{};", e, e)?;
+            ret.push_str(&format!("    I_{} -> S_{};", e, e));
         }
 
-        write!(file, "}}")?;
+        ret.push_str("}");
 
-        Ok(())
+        ret
     }
 
     /// Returns an empty NFA.
