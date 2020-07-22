@@ -1,13 +1,16 @@
-use crate::automaton::FromRawError;
-use crate::automaton::{Automata, Automaton, Buildable};
-use crate::nfa::{ToNfa, NFA};
-use crate::regex::{Regex, ToRegex};
-use std::cmp::{Ordering, Ordering::*, PartialEq, PartialOrd};
-use std::collections::{HashMap, HashSet};
-use std::fmt::{Debug, Display};
-use std::hash::Hash;
-use std::ops::{Add, Mul, Neg, Not, RangeBounds, Sub};
-use std::str::FromStr;
+use crate::{
+    automaton::{Automata, Automaton, Buildable, FromRawError},
+    nfa::{ToNfa, NFA},
+    regex::{Regex, ToRegex},
+};
+use std::{
+    cmp::{Ordering, Ordering::*, PartialEq, PartialOrd},
+    collections::{HashMap, HashSet},
+    fmt::{Debug, Display},
+    hash::Hash,
+    ops::{Add, Mul, Neg, Not, RangeBounds, Sub},
+    str::FromStr,
+};
 
 /// <https://en.wikipedia.org/wiki/Deterministic_finite_automaton>
 #[derive(Debug, Clone)]

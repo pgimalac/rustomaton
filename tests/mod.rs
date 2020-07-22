@@ -294,7 +294,7 @@ mod tests {
     #[test]
     fn test_dot() {
         for (i, (aut, _, _)) in automaton_list().into_iter().enumerate() {
-            aut.write_dot(i as u8).unwrap();
+            println!("{}:\n\n{}", i, aut.to_dot());
         }
     }
 
@@ -359,8 +359,8 @@ mod tests {
             for (j, (aut2, acc2, _)) in list.iter().enumerate() {
                 let aut = aut1.clone().unite(aut2.clone());
                 if let Some(e) = acc1.iter().chain(acc2.iter()).find(|x| !aut.run(x)) {
-                    aut.write_dot(9).unwrap();
-                    panic!("unite of {} and {}: elem {:?}", i, j, e);
+                    let dot = aut.to_dot();
+                    panic!("unite of {} and {}: elem {:?}\n\n{}", i, j, e, dot);
                 }
             }
         }
@@ -376,8 +376,8 @@ mod tests {
                     let mut acc = acc1.clone();
                     acc.iter_mut().for_each(|x| x.append(&mut post.clone()));
                     if let Some(e) = acc.into_iter().find(|x| !aut.run(x)) {
-                        aut.write_dot(9).unwrap();
-                        panic!("concat of {} and {}: elem {:?}", i, j, e);
+                        let dot = aut.to_dot();
+                        panic!("concat of {} and {}: elem {:?}\n\n{}", i, j, e, dot);
                     }
                 }
             }
@@ -389,17 +389,17 @@ mod tests {
         for (i, (aut, acc, rej)) in automaton_list().into_iter().enumerate() {
             let aut = aut.negate();
             if let Some(e) = acc.iter().find(|x| aut.run(x)) {
-                aut.write_dot(9).unwrap();
+                let dot = aut.to_dot();
                 panic!(
-                    "negation of {} : elem {:?} wasn't supposed to be accepted",
-                    i, e
+                    "negation of {} : elem {:?} wasn't supposed to be accepted\n\n{}",
+                    i, e, dot
                 );
             }
             if let Some(e) = rej.iter().find(|x| !aut.run(x)) {
-                aut.write_dot(9).unwrap();
+                let dot = aut.to_dot();
                 panic!(
-                    "negation of {} : elem {:?} was supposed to be accepted",
-                    i, e
+                    "negation of {} : elem {:?} was supposed to be accepted\n\n{}",
+                    i, e, dot
                 );
             }
         }
@@ -412,8 +412,8 @@ mod tests {
             for (j, (aut2, _, rej2)) in list.iter().enumerate() {
                 let aut = aut1.clone().intersect(aut2.clone());
                 if let Some(e) = rej1.iter().chain(rej2.iter()).find(|x| aut.run(x)) {
-                    aut.write_dot(9).unwrap();
-                    panic!("intersection of {} and {}: elem {:?}", i, j, e);
+                    let dot = aut.to_dot();
+                    panic!("intersection of {} and {}: elem {:?}\n\n{}", i, j, e, dot);
                 }
             }
         }
@@ -460,12 +460,12 @@ mod tests {
         for (i, (aut, acc, rej)) in automaton_list().into_iter().enumerate() {
             let aut = aut.to_dfa();
             if let Some(e) = acc.iter().find(|x| !aut.run(x)) {
-                aut.write_dot(8).unwrap();
-                panic!("{} is supposed to accept {:?}", i, e);
+                let dot = aut.to_dot();
+                panic!("{} is supposed to accept {:?}\n\n{}", i, e, dot);
             }
             if let Some(e) = rej.iter().find(|x| aut.run(x)) {
-                aut.write_dot(8).unwrap();
-                panic!("{} isn't supposed to accept {:?}", i, e);
+                let dot = aut.to_dot();
+                panic!("{} isn't supposed to accept {:?}\n\n{}", i, e, dot);
             }
         }
     }
@@ -476,26 +476,26 @@ mod tests {
             let aut1 = aut.clone().kleene();
 
             if !aut1.run(&Vec::new()) {
-                aut1.write_dot(9).unwrap();
-                panic!("{} kleened should accept []", i);
+                let dot = aut1.to_dot();
+                panic!("{} kleened should accept []\n\n{}", i, dot);
             }
             for a1 in &acc {
                 for a2 in &acc {
                     let mut e = a1.clone();
                     e.append(&mut a2.clone());
                     if !aut1.run(&e) {
-                        aut1.write_dot(9).unwrap();
+                        let dot = aut1.to_dot();
                         panic!(
-                            "{} kleened should accept the concatenation of {:?} and {:?}",
-                            i, a1, a2
+                            "{} kleened should accept the concatenation of {:?} and {:?}\n\n{}",
+                            i, a1, a2, dot
                         );
                     }
                 }
             }
 
             if !aut1.contains(&aut) {
-                aut1.write_dot(9).unwrap();
-                panic!("{} kleened should contain itself", i);
+                let dot = aut1.to_dot();
+                panic!("{} kleened should contain itself\n\n{}", i, dot);
             }
         }
     }

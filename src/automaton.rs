@@ -1,13 +1,15 @@
-use crate::automaton::Automaton::*;
-use crate::regex::Regex;
 use crate::{
+    automaton::Automaton::*,
     dfa::DFA,
     nfa::{ToNfa, NFA},
+    regex::Regex,
 };
-use std::cmp::{Ordering, Ordering::*, PartialEq, PartialOrd};
-use std::fmt::{Debug, Display};
-use std::hash::Hash;
-use std::ops::RangeBounds;
+use std::{
+    cmp::{Ordering, Ordering::*, PartialEq, PartialOrd},
+    fmt::{Debug, Display},
+    hash::Hash,
+    ops::RangeBounds,
+};
 
 ///
 /// Automaton<V> regroups [`NFA<V>`], [`DFA<V>`] and [`Regex<V>`] where `V` is the type of the [`alphabet`].

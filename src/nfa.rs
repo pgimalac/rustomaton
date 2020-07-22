@@ -1,15 +1,18 @@
-use crate::automaton::FromRawError;
-use crate::automaton::{Automata, Automaton, Buildable};
-use crate::dfa::{ToDfa, DFA};
-use crate::regex::{Operations, Regex, ToRegex};
-use crate::utils::*;
-use std::cmp::{Ordering, Ordering::*, PartialEq, PartialOrd};
-use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
-use std::fmt::{Debug, Display};
-use std::hash::Hash;
-use std::iter::{repeat, FromIterator};
-use std::ops::{Add, BitOr, Bound::*, Mul, Neg, Not, RangeBounds, Sub};
-use std::str::FromStr;
+use crate::{
+    automaton::{Automata, Automaton, Buildable, FromRawError},
+    dfa::{ToDfa, DFA},
+    regex::{Operations, Regex, ToRegex},
+    utils::*,
+};
+use std::{
+    cmp::{Ordering, Ordering::*, PartialEq, PartialOrd},
+    collections::{BTreeSet, HashMap, HashSet, VecDeque},
+    fmt::{Debug, Display},
+    hash::Hash,
+    iter::{repeat, FromIterator},
+    ops::{Add, BitOr, Bound::*, Mul, Neg, Not, RangeBounds, Sub},
+    str::FromStr,
+};
 
 /// <https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton>
 #[derive(Debug, Clone)]

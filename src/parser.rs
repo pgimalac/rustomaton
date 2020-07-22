@@ -1,5 +1,4 @@
-use crate::parser::Token::*;
-use crate::regex::Operations;
+use crate::{parser::Token::*, regex::Operations};
 use logos::Logos;
 use std::collections::{BTreeSet, VecDeque};
 

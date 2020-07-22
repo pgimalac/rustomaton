@@ -1,10 +1,14 @@
 /* AUXILIARY FUNCTIONS */
 
-use crate::nfa::NFA;
-use crate::regex::{Operations, Operations::Letter};
-use std::collections::{BTreeSet, HashMap, HashSet};
-use std::fmt::{Debug, Display};
-use std::hash::Hash;
+use crate::{
+    nfa::NFA,
+    regex::{Operations, Operations::Letter},
+};
+use std::{
+    collections::{BTreeSet, HashMap, HashSet},
+    fmt::{Debug, Display},
+    hash::Hash,
+};
 
 pub fn append_hashset<V: Eq + Hash>(a: &mut HashSet<V>, b: HashSet<V>) {
     a.extend(b.into_iter())

@@ -1,16 +1,18 @@
-use crate::utils::*;
 use crate::{
     automaton::{Automaton, Buildable},
     dfa::{ToDfa, DFA},
     nfa::{ToNfa, NFA},
     parser::*,
+    utils::*,
 };
-use std::cmp::{Ordering, Ordering::*};
-use std::collections::{BTreeSet, HashSet, VecDeque};
-use std::fmt::{Debug, Display};
-use std::hash::Hash;
-use std::ops::{Add, AddAssign, Bound::*, Mul, RangeBounds};
-use std::str::FromStr;
+use std::{
+    cmp::{Ordering, Ordering::*},
+    collections::{BTreeSet, HashSet, VecDeque},
+    fmt::{Debug, Display},
+    hash::Hash,
+    ops::{Add, AddAssign, Bound::*, Mul, RangeBounds},
+    str::FromStr,
+};
 use Operations::*;
 
 /// Represents a regex.
