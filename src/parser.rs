@@ -5,37 +5,34 @@ use std::collections::{BTreeSet, VecDeque};
 /// The token used by [`logos`](/logos/index.html`]).
 #[derive(Logos, Debug, PartialEq, Clone)]
 pub enum Token {
-    #[end]
-    End,
-
     #[error]
     Error,
 
-    #[token = "|"]
+    #[token("|")]
     Union,
 
-    #[token = "("]
+    #[token("(")]
     Lpar,
 
-    #[token = ")"]
+    #[token(")")]
     Rpar,
 
-    #[token = "."]
+    #[token(".")]
     Dot,
 
-    #[token = "*"]
+    #[token("*")]
     Kleene,
 
-    #[token = "?"]
+    #[token("?")]
     Question,
 
-    #[token = "+"]
+    #[token("+")]
     Plus,
 
-    #[token = "𝜀"]
+    #[token("𝜀")]
     Epsilon,
 
-    #[regex = "[^|+().*?𝜀]"]
+    #[regex("[^|+().*?𝜀]")]
     Letter,
 }
 
@@ -57,9 +54,8 @@ pub(crate) fn tokens(s: &str) -> VecDeque<(Token, &str)> {
     let mut lexer = Token::lexer(s);
     let mut tokens = VecDeque::new();
 
-    while lexer.token != Token::End {
-        tokens.push_back((lexer.token.clone(), lexer.slice()));
-        lexer.advance();
+    while let Some(token) = lexer.next() {
+        tokens.push_back((token.clone(), lexer.slice()));
     }
 
     tokens
@@ -158,7 +154,7 @@ pub(crate) fn read_concat(
                 "Unexpected {}",
                 tokens[0].1.chars().next().unwrap()
             ));
-        } else if x == Rpar || x == Union || x == End {
+        } else if x == Rpar || x == Union {
             break;
         } else {
             unreachable!()
