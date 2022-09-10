@@ -1,19 +1,19 @@
 [package]
-name = "rustomaton"
-version = "0.2.1"
 authors = ["Pierre Gimalac <pierre.gimalac@gmail.com>"]
-edition = "2018"
-description = "A small Rust library for automaton (DFA, NFA, Regex) manipulation."
-readme = "README.md"
-homepage = "https://github.com/pgimalac/rustomaton"
-repository = "https://github.com/pgimalac/rustomaton"
-license = "MIT"
-keywords = ["automaton", "dfa", "nfa", "regex"]
 categories = ["algorithms"]
+description = "A small Rust library for automaton (DFA, NFA, Regex) manipulation."
+edition = "2018"
 exclude = ["tests"]
+homepage = "https://github.com/pgimalac/rustomaton"
+keywords = ["automaton", "dfa", "nfa", "regex"]
+license = "MIT"
+name = "rustomaton"
+readme = "README.md"
+repository = "https://github.com/pgimalac/rustomaton"
+version = "0.2.1"
 
 [dependencies]
-logos = "0.9.7"
+logos = "0.12.1"
 
 [dev-dependencies]
-rand = "0.7.3"
+rand = "0.8.5"

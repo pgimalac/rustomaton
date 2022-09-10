@@ -22,7 +22,7 @@ pub fn new_generator(alphabet: HashSet<char>, max_depth: u8) -> Generator {
 impl Generator {
     fn random_with_rng(alphabet: &[char], rng: &mut ThreadRng) -> String {
         let alphalen = alphabet.len();
-        let n = rng.gen_range(0, alphalen + 2);
+        let n = rng.gen_range(0..alphalen + 2);
 
         match n.cmp(&alphalen) {
             Equal => ".".to_string(),
@@ -41,7 +41,7 @@ impl Generator {
         }
 
         const TOTAL: u8 = 7;
-        let choice = self.rng.gen_range(0, TOTAL);
+        let choice = self.rng.gen_range(0..TOTAL);
         self.actual_depth += 1;
         let rec1 = self.run();
 
